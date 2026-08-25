@@ -1,0 +1,15 @@
+Nama Sheet,Nama Kolom,Tipe Data
+Domestik,YEAR,int64
+Domestik,MONTH,object
+Domestik,DESCRIPTION,object
+Domestik,UNIT,object
+Domestik,ACTUAL,float64
+Domestik,BUDGET,float64
+Domestik,ACTUAL VS BUDGET,float64
+International,YEAR,int64
+International,MONTH,object
+International,DESCRIPTION,object
+International,UNIT,object
+International,ACTUAL,float64
+International,BUDGET,float64
+International,ACTUAL VS BUDGET,float64

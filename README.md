@@ -4,7 +4,7 @@
 
 **Studi Kasus:** PT Terminal Petikemas Surabaya (TPS)
 
-**Fokus Arsitektur:** Full Dataset (Non-Streaming), Deterministic Mapping, Multi-Agent LLM & Self-Healing
+**Fokus Arsitektur:** Full Dataset (Non-Streaming), Deterministic Mapping, Multi-Agent LLM (Semantic Layer, Hard Rules Sanitizer, & Self-Healing)
 
 ---
 
@@ -23,7 +23,9 @@
 - **Akurasi Numerik Tinggi:** LLM (_Large Language Model_) tidak digunakan untuk melakukan komputasi numerik secara langsung, melainkan difokuskan untuk menerjemahkan bahasa alami menjadi _query_ `SQL`. Eksekusi komputasi sepenuhnya ditangani oleh DuckDB untuk menjamin determinisme dan akurasi data.
 - **Efisiensi Biaya dan Waktu:** Optimalisasi melalui proses _Unpivot_ dan penyederhanaan skema _database_ dilakukan untuk menekan jumlah token yang diproses oleh LLM, sehingga memungkinkan waktu respons yang mendekati _real-time_.
 - **Keamanan dan Kontrol Akses (RBAC):** Privasi data perusahaan dijaga dengan memproses _dataset_ secara lokal (tidak dikirim ke layanan _cloud_ publik). Selain itu, sistem menerapkan _Role-Based Access Control_ (RBAC) pada setiap instruksi _query_ untuk mencegah akses silang antar divisi yang tidak sah.
-- **Keandalan Sistem (Resiliency):** Sistem mengadopsi validasi struktur data (_Data Contract_) serta mekanisme perbaikan _query_ otomatis (_Self-Healing_) oleh agen AI untuk meminimalisasi kegagalan sistem akibat _query_ yang tidak valid.
+- **Injeksi Lapisan Semantik (Semantic Layer):** Mencegah halusinasi LLM terhadap struktur data yang kompleks dengan menyertakan Glosarium Metadata Bisnis, Pemetaan Relasi Skema, dan Definisi Metrik Kurasi secara proaktif sebelum proses _Text-to-SQL_.
+- **LangGraph Orchestration & Hard Rules Sanitizer:** Setiap kueri SQL dari LLM wajib dilewatkan ke _node sanitizer_ yang menegakkan aturan ketat (contoh: hanya mengizinkan satu blok `SELECT`, tabel/view wajib valid, dan format interval mematuhi sintaks DuckDB) sebelum dieksekusi.
+- **Keandalan Sistem (Execution-Guided Self-Healing):** Sistem mengadopsi validasi struktur data (_Data Contract_) serta dekomposisi berulang. Jika kueri SQL gagal dieksekusi (_syntax error_) atau mengembalikan _result set_ kosong, agen akan melakukan koreksi mandiri secara iteratif (maksimal 3 kali percobaan) untuk memastikan hasil yang valid.
 
 ---
 
@@ -54,16 +56,18 @@ _Arsitektur yang mengandalkan beberapa agen LLM spesifik dengan mitigasi halusin
    - **Penerapan RBAC:** Memeriksa otoritas akses pengguna sebelum permintaan diteruskan ke agen AI. Pertanyaan di luar cakupan otorisasi akan secara proaktif diblokir.
    - **Redis Caching:** Memanfaatkan _semantic cache_ untuk merespons pertanyaan berulang dengan _latency_ minimal tanpa perlu melakukan pemanggilan API tambahan ke LLM.
 2. **Agen 1 (Router / Pemilah Konteks):**
-   - **Input:** _Query_ Pengguna + Katalog Data + Konteks Otorisasi Pengguna.
-   - **Fungsi:** Mengidentifikasi tabel maupun skema data yang paling relevan dengan _intent_ pengguna.
+   - **Input:** _Query_ Pengguna + Katalog Data + Konteks Otorisasi Pengguna + **Lapisan Semantik (Glosarium Bisnis & Metrik)**.
+   - **Fungsi:** Mengidentifikasi tabel maupun skema data yang paling relevan dengan _intent_ pengguna secara presisi berkat panduan Lapisan Semantik.
 3. **Agen 2 (Specialist / Text-to-SQL):**
-   - **Input:** _Query_ Pengguna + Detail Skema Tabel.
+   - **Input:** _Query_ Pengguna + Detail Skema Tabel + Lapisan Semantik.
    - **Fungsi:** Bertugas mengubah _query_ berbahasa alami menjadi sintaks `SQL` fungsional.
    - **Pembatasan Data:** Agen ini diinstruksikan untuk menambahkan klausul `LIMIT` pada _query_ yang menghasilkan data mentah non-agregat guna mencegah kelebihan beban pada memori sistem (OOM).
-4. **Siklus Eksekusi dan Koreksi Otomatis (Self-Healing Loop):**
+4. **Hard Rules Sanitizer:**
+   - Sebelum dieksekusi, kueri SQL dari Agen 2 wajib dilewatkan ke _Node Sanitizer_ untuk memastikan kepatuhan aturan ketat (contoh: hanya satu blok `SELECT`, merujuk tabel/view yang diizinkan, dan sesuai format DuckDB).
+5. **Siklus Eksekusi dan Koreksi Otomatis (Execution-Guided Self-Healing Loop):**
    - Sistem aplikasi mengeksekusi _query_ `SQL` melalui DuckDB.
-   - **Koreksi Otomatis:** Apabila eksekusi menghasilkan error seperti _Syntax Error_, sistem akan meneruskan pesan error tersebut kembali ke Agen 2 untuk diperbaiki secara iteratif (dibatasi maksimal 3 siklus koreksi) tanpa memunculkan interupsi pada _User Interface_ (UI) pengguna.
-5. **Agen 3 (Generator Data & Visualizer):**
+   - **Koreksi Otomatis:** Apabila eksekusi menghasilkan error (_Syntax Error_) atau mengembalikan hasil kosong (_Empty Result Set_), sistem akan menangkap pesan tersebut dan meneruskannya kembali ke Agen 2 untuk diperbaiki secara mandiri (dibatasi maksimal 3 siklus koreksi) tanpa memunculkan interupsi pada _User Interface_ (UI).
+6. **Agen 3 (Generator Data & Visualizer):**
    - **Input:** _Intent_ Awal Pengguna + Hasil _Query_ Aktual dari DuckDB.
    - **Fungsi:** Menganalisis hasil _query_ untuk disusun menjadi narasi penjelasan analisis (_Natural Language Generation_/NLG), sekaligus menyusun data menjadi format `JSON` yang siap dirender menjadi elemen visualisasi.
 
