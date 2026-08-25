@@ -1,0 +1,63 @@
+YEAR,MONTH,VESSEL OPERATOR,SERVICE,ROUTES,SERVICE MODE,TOTAL CALL,BMPH,GMPH,AVERAGE CD*,BOXES*,TEUs,ON,MOVES,TEUS,STATUS,Unnamed: 16
+2024,3,ANL,APR,Port Klang-Singapore-Jakarta-Surabaya-Lae-Kimbe-Motukea Island- Townsville-Port Klang,Direct,1,9,15,0.7,59,94,0.0,59,94,INTERNATIONAL,MYKLA-SGSIN-IDJKT-IDSUB-PGLAE-PGKIM-PGMTK- AUTSV-MYKLA
+2024,3,ANL,PAX,Singapore-Surabaya-Dili-Darwin-Singapore,Direct,3,19,26,1.1,103,170,1.0,308,509,INTERNATIONAL,SGSIN-IDSUB-TLDIL-AUDRW-SGSIN
+2024,3,BEN,ETS/SDD,Singapore-Surabaya-Dili,Direct,2,11,17,1,72,123,1.0,144,245,INTERNATIONAL,SGSIN-IDSUB-TLDIL
+2024,3,CMA,CHINA 1,Shanghai-Ningbo-Shantou-Shekou-Jakarta-Surabaya-Manila South-Manila North-Shanghai,Direct,1,48,24,2,1139,1810,0.0,1139,1810,INTERNATIONAL,CNSGH-CNNBO-CNSTG-CNSHK-IDJKT-IDSUB-PHMNL South-PHMNL North-CNSGH
+2024,3,CMA,CS 2,HongKong–Nansha–Shekou–Surabaya–Semarang– Jakarta–Port Klang (North)–Port Klang (West)– HongKong,Direct,1,48,31,1.7,677,1020,1.0,677,1020,INTERNATIONAL,HKHKG–CNNSH–CNSHK–IDSUB–IDSRG– IDJKT–MYKLA (North)–MYKLA (West)– HKHKG
+2024,3,CMA,KCS,North South: Lianyungang-Qingdao-Nansha-Port Kelang-Singapore-Jakarta-Surabaya-Davao-Shanghai-Dalian. East-West: Yantian-Nansha-Chiwan-Hongkong-Manila South-Manila North,Direct,4,71,32,2.4,1662,2797,0.0,6648,11188,INTERNATIONAL,North South: CNLYG-CNQIN-CNNSH-MYTPP-SGSIN-IDJKT-IDSUB-PHDVO-CNSGH-CNDAL. East-West: CNYTN-CNNSH-CNCWN-HKHKG-PHMNL South-PHMNL North
+2024,3,CMA,JSS,Singapore-Semarang-Surabaya-Singapore,Feeder,2,72,34,2.1,2296,3397,0.5,4591,6794,INTERNATIONAL,SGSIN-IDSRG-IDSUB-SGSIN
+2024,3,CMA,Ad Hoc CMA,Singapore-Semarang-Surabaya-Singapore,Ad Hoc,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,SGSIN-IDSRG-IDSUB-SGSIN
+2024,3,COS,GMI,Jakarta-Surabaya-Singapore-Pasir Gudang-Singapore-Port Kelang West,Feeder,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,IDJKT-IDSUB-SGSIN-MYPGU-SGSIN-MYKLA
+2024,3,COS,SSS-SAT,Singapore-Surabaya-Singapore,Feeder,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,SGSIN-IDSUB-SGSIN
+2024,3,COS,SSS-WED,Singapore-Surabaya-Singapore,Feeder,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,SGSIN-IDSUB-SGSIN
+2024,3,COS,KCS,North South: Lianyungang-Qingdao-Nansha-Port Kelang-Singapore-Jakarta-Surabaya-Davao-Shanghai-Dalian. East-West: Yantian-Nansha-Chiwan-Hongkong-Manila South-Manila North,Direct,0,,,,,,,0,0,INTERNATIONAL,North South: CNLYG-CNQIN-CNNSH-MYTPP-SGSIN-IDJKT-IDSUB-PHDVO-CNSGH-CNDAL. East-West: CNYTN-CNNSH-CNCWN-HKHKG-PHMNL South-PHMNL North
+2024,3,COS,JSS,Singapore-Semarang-Surabaya-Singapore,Feeder,2,91,35,2.8,2656,3787,1.0,5311,7573,INTERNATIONAL,SGSIN-IDSRG-IDSUB-SGSIN
+2024,3,COS,CHINA 1,,,1,62,35,2,1300,2032,0.0,1300,2032,INTERNATIONAL,CNSGH-CNNBO-CNSTG-CNSHK-IDJKT-IDSUB-PHMNL South-PHMNL North-CNSGH
+2024,3,EMC,CIT,Ningbo-Shanghai-Hong Kong (Zhujiang)-Shekou-Surabaya-Semarang-Jakarta-Singapore-Laemchabang-Hong Kong-Ningbo,Direct,3,56,34,1.9,607,972,0.67,1820,2917,INTERNATIONAL,CNNBO-CNSGH-HKHKG (Zhujiang)-CNSHK-IDSUB-IDSRG-IDJKT-SGSIN-THLCH-HKHKG-CNNBO
+2024,3,EMC,JPI-A,Yokohama-Tokyo-Shimizu-Nagoya-Kobe-Taipei-Kaohsiung-Manila South-Surabaya-Jakarta-Tanjung Pelepas-Bintulu-Kaohsiung,Direct,4,64,29,2.5,986,1507,0.5,3942,6026,INTERNATIONAL,JPYOK-JPTYO-JPSMZ-JPNGO-JPUKB-TWTPE-TWKHH-PHMNL South-IDSUB-IDJKT-MYTPP-MYBTU-TWKHH
+2024,3,EMC,JPI-B,Shekou-Hong Kong-Jakarta-Semarang-Surabaya-Manila South-Kaohsiung-Taipei-Yokohama,Direct,5,42,22,2.1,637,1034,0.4,3183,5170,INTERNATIONAL,CNSHK-HKHKG-IDJKT-IDSRG-IDSUB-PHMNL South-TWKHH-TWTPE-JPYOK
+2024,3,EMC,TMI,Surabaya-Semarang-Tanjung Pelepas-Laemchabang,Feeder,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,IDSUB-IDSRG-MYTPP-THLCH
+2024,3,EMC,VMI,Haipong-Ho Chi Minh City-Port Klang West Port-Tanjung Pelepas-Jakarta-Semarang-Surabaya,Direct,4,49,28,2,2583,3546,0.0,2583,3546,INTERNATIONAL,VNHPH-VNSGN-MYKLA West Port-MYTPP-IDJKT-IDSRG-IDSUB
+2024,3,GSL,ITS,Port Klang-Singapore-Semarang-Surabaya-Port Klang- Singapore-Bangkok Sahathai Terminal-Laem Chabang,Feeder,1,39,21,1.9,893,1225,0.0,893,1225,INTERNATIONAL,MYKLA-SGSIN-IDSRG-IDSUB-MYKLA- SGSIN-THBKK THSCS-THLCH
+2024,3,HPL,AD HOC HPA,Various route,Ad Hoc,0,,,,,,,0,0,INTERNATIONAL,Various route
+2024,3,KAL,Ad Hoc KRL,Various route,Ad Hoc,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,Various route
+2024,3,KMT,CKI,Pusan-Kwangyang-Shanghai-Ningbo-Hongkong-Jakarta-Surabaya-Hochiminh Cat Lai-Ningbo-Shanghai-Pusan,Direct,4,37,26,1.6,399,571,0.0,1597,2284,INTERNATIONAL,KRPUS-KRKWA-CNSGH-CNNBO-HKHKG-IDJKT-IDSUB-VNSGN VNCLI-CNNBO-CNSGH-KRPUS
+2024,3,KSL,KPG,Jakarta-Surabaya-Port Klang West-Nhava Sheva-Jebel Ali-Colomba-Dammam-Karachi-Mundra,Direct,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,IDJKT-IDSUB-MYKLA West-INNSA-AEJEA-LKCMB-SADMM-PKKHI-INMUN
+2024,3,LMA,ETS/SDD,Singapore-Surabaya-Dili,Direct,1,17,26,0.9,72,133,1.0,72,133,INTERNATIONAL,SGSIN-IDSUB-TLDIL
+2024,3,MEL,Ad Hoc MKP,Various route,Ad Hoc,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,Various route
+2024,3,MPN,MPN AD HOC,Various route,Ad Hoc,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,0
+2024,3,MSC,NEW JAVA F,Singapore-Tanjung Pelepas-Jakarta-Surabaya-Singapore,Feeder,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,SGSIN-MYTPP-IDJKT-IDSUB-SGSIN
+2024,3,MSC,NEW JAVA T,Singapore-Tanjung Pelepas-Semarang-Surabaya,Feeder,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,SGSIN-MYTPP-IDSRG-IDSUB
+2024,3,MSC,DOLPHIN,Shanghai-Ningbo-Xiamen-Tanjung Pelepas-Singapore-Jakarta-Surabaya-Tanjung Pelepas-Singapore-Laem Chabang-Vung Tau-Shanghai,Direct,5,45,21,2.2,1009,1519,1.0,5044,7593,INTERNATIONAL,CNSGH-CNNBO-CNXAM-MYTPP-SGSIN-IDJKT-IDSUB-MYTPP-SGSIN-THLCH-VNVUT-CNSGH
+2024,3,MSC,Seahorse,Shanghai-Ningbo-Laem Chabang-Port Klang-Singapore-Surabaya-Jakarta-Tanjung Pelepas-Qinzhou-Hongkong-Shanghai,Direct,6,48,28,2,788,1155,0.33,4730,6929,INTERNATIONAL,CNSGH-CNNBO-THLCH-MYKLA-SGSIN-IDSUB-IDJKT-MYTPP-CNQZH-HKHKG-CNSGH
+2024,3,MSK,IA-8,Shanghai-Xingang-Qingdao-Keelung-Singapore-Tanjung Pelepas-Jakarta-Surabaya-Davao-Shanghai,Direct,5,60,28,2.2,1697,2772,0.6,8485,13858,INTERNATIONAL,CNSGH-CNTXG-CNQIN-TWKEL-SGSIN-MYTPP-IDJKT-IDSUB-PHDVO-CNSGH
+2024,3,NSS,KCI,Jakarta-Surabaya-Shekou-Xiamen-Pusan-Qingdao-Shanghai-Ningbo-Jakarta,Direct,1,0,23,2,774,1207,0.0,774,1207,INTERNATIONAL,IDJKT-IDSUB-CNSHK-CNXAM-KRPUS-CNQIN-CNSGH-CNNBO-IDJKT
+2024,3,ONE,CS 2,HongKong–Nansha–Shekou–Surabaya–Semarang– Jakarta–Port Klang (North)–Port Klang (West)– HongKong,Direct,2,44,23,2,794,1213,0.0,1587,2426,INTERNATIONAL,HKHKG–CNNSH–CNSHK–IDSUB–IDSRG– IDJKT–MYKLA (North)–MYKLA (West)– HKHKG
+2024,3,ONE,KCI,Jakarta-Surabaya-Shekou-Xiamen-Pusan-Qingdao-Shanghai-Ningbo-Jakarta,Direct,1,0,0,0,990,1412,0.0,990,1412,INTERNATIONAL,IDJKT-IDSUB-CNSHK-CNXAM-KRPUS-CNQIN-CNSGH-CNNBO-IDJKT
+2024,3,OOL,ITS,Port Klang-Singapore-Semarang-Surabaya-Port Klang- Singapore-Bangkok Sahathai Terminal-Laem Chabang,Feeder,2,44,18,2.5,946,,0.0,1892,2604,INTERNATIONAL,MYKLA-SGSIN-IDSRG-IDSUB-MYKLA- SGSIN-THBKK THSCS-THLCH
+2024,3,OOL,CHINA1,Shanghai-Ningbo-Shantou-Shekou-Jakarta-Surabaya-Manila South-Manila North-Shanghai,Direct,1,69,30,2,1154,1667,0.0,1154,1667,INTERNATIONAL,CNSGH-CNNBO-CNSTG-CNSHK-IDJKT-IDSUB-PHMNL South-PHMNL North-CNSGH
+2024,3,PIL,SSE,Singapore-Surabaya-Singapore,Feeder,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,SGSIN-IDSUB-SGSIN
+2024,3,PIL,SUS,-,-,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,-
+2024,3,RCL,RMI3,Singapore-Surabaya-Singapore-Port Klang-Penang-Port Klang-Singapore,Feeder,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,SGSIN-IDSUB-SGSIN-MYKLA-MYNTL-MYKLA-SGSIN
+2024,3,RCL,CS 2,HongKong–Nansha–Shekou–Surabaya–Semarang– Jakarta–Port Klang (North)–Port Klang (West)– HongKong,Direct,1,31,20,1,815,1195,0.0,815,1195,INTERNATIONAL,HKHKG–CNNSH–CNSHK–IDSUB–IDSRG– IDJKT–MYKLA (North)–MYKLA (West)– HKHKG
+2024,3,SIT,CMI,Jakarta-Semarang-Surabaya-Makassar-Batangas-Shanghai-Xiamen-Shekou-Nansha-Bintulu-Jakarta,Direct,5,31,24,1.6,314,479,0.4,1569,2397,INTERNATIONAL,IDJKT-IDSRG-IDSUB-IDMAK-PHBTG-CNSGH-CNXAM-CNSHK-CNNSH-MYBTU-IDJKT
+2024,3,SIT,CMI2,Shekou-Nansha-Hochiminh-Jakarta-Semarang- Surabaya-Bintulu-Qinzhao-Shekou,Direct,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,CNSHK-CNNSH-VNSGN-IDJKT-IDSRG- IDSUB-MYBTU-CNQGS-CNSHK
+2024,3,SIT,KCI,Jakarta-Surabaya-Shekou-Xiamen-Pusan-Qingdao-Shanghai-Ningbo-Jakarta,Direct,1,40,22,1.6,866,1258,0.0,866,1258,INTERNATIONAL,IDJKT-IDSUB-CNSHK-CNXAM-KRPUS-CNQIN-CNSGH-CNNBO-IDJKT
+2024,3,SSL,SSS-SAT,Singapore-Surabaya-Singapore,Feeder,4,86,36,2.3,1900,2854,0.0,7601,11414,INTERNATIONAL,SGSIN-IDSUB-SGSIN
+2024,3,SSL,SSS-WED,Singapore-Surabaya-Singapore,Feeder,4,68,30,2,1519,2263,0.0,6074,9051,INTERNATIONAL,SGSIN-IDSUB-SGSIN
+2024,3,SSL,SSE,Singapore-Surabaya-Singapore,Feeder,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,SGSIN-IDSUB-SGSIN
+2024,3,SSL,AD HOC SSL,Various route,Ad Hoc,0,,,,,,,0,0,INTERNATIONAL,Various route
+2024,3,TSL,KCI,Jakarta-Surabaya-Shekou-Xiamen-Pusan-Qingdao-Shanghai-Ningbo-Jakarta,Direct,1,34,18,2,876,1333,0.0,876,1333,INTERNATIONAL,IDJKT-IDSUB-CNSHK-CNXAM-KRPUS-CNQIN-CNSGH-CNNBO-IDJKT
+2024,3,WHL,CS 2,HongKong–Nansha–Shekou–Surabaya–Semarang– Jakarta–Port Klang (North)–Port Klang (West)– HongKong,Direct,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,HKHKG–CNNSH–CNSHK–IDSUB–IDSRG– IDJKT–MYKLA (North)–MYKLA (West)– HKHKG
+2024,3,WHL,TPI,Jakarta-Semarang-Surabaya-Kaohsiung-Taichung-Kaohsiung-Taipei,Direct,5,39,19,2.1,1047,1638,0.6,5235,8192,INTERNATIONAL,IDJKT-IDSRG-IDSUB-TWKHH-TWTXG-TWKHH-TWTPE
+2024,3,WHL,Ad Hoc WHL,Various route,Ad Hoc,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,Various route
+2024,3,WHL,C18,Surabaya-Singapore-Port Klang- Mundra-Nhava Sheva,Direct,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,IDSUB-SGSIN-MYKLA- INMUN-INNSA
+2024,3,XCL,SSX,Singapore-Surabaya-Singapore,Feeder,0,0,0,0,0,0,0.0,0,0,INTERNATIONAL,SGSIN-IDSUB-SGSIN
+2024,3,YML,ITS,Port Klang-Singapore-Semarang-Surabaya-Port Klang- Singapore-Bangkok Sahathai Terminal-Laem Chabang,Feeder,0,,,,,,,0,0,INTERNATIONAL,MYKLA-SGSIN-IDSRG-IDSUB-MYKLA- SGSIN-THBKK THSCS-THLCH
+2024,3,CMA,AD HOC CMA,Malta,Feeder,-,-,-,-,-,-,0.0,-,-,DOMESTIK,SGSIN-IDSRG-IDSUB-SGSIN
+2024,3,SPI,SPIL AD HO,Surabaya - Jakarta - Makassar - Palu,Direct,6,20,20,1.16,373,407,1.0,2237,2439,DOMESTIK,IDSUB - IDJKT - IDMAK - IDPAL
+2024,3,TIL,TIL AD HOC,Various POO,Direct,14,18,28,0.79,355,400,0.98,4976,5601,DOMESTIK,Various POO
+2024,3,TEMAS,TEMAS AD H,Surabaya - Makassar,Feeder,-,-,-,-,-,-,0.0,-,-,DOMESTIK,IDSUB - IDMAK
+2024,3,ICON,ICON,,Direct,2,15,23,0.87,169,200,1.0,338,399,DOMESTIK,0
+2024,3,MERATUS,MPN-BOA,Surabaya - Benoa,Direct,1,12,23,1,35,54,1.0,35,54,DOMESTIK,IDSUB - IDBNA
+2024,3,PNJ,PPNP-SUBMK,Surabaya - Makassar,,2,11,24,1,71,77,0.0,141,154,DOMESTIK,IDSUB - IDMAK

@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+env/
+.venv/
+
+# Environment Variables (SANGAT PENTING: Jangan sampai API Key bocor!)
+.env
+.env.*
+
+# Databases & Data Files
+# Mengabaikan file DuckDB karena ukurannya bisa sangat besar dan merupakan hasil generate lokal
+*.duckdb
+*.duckdb.wal
+data/processed/*.duckdb
+
+# Logs
+logs/
+*.log
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Frontend (Meskipun kita pakai CDN, ini untuk jaga-jaga jika nanti ada npm install)
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
