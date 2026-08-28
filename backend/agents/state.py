@@ -6,6 +6,7 @@ class AgentState(TypedDict):
     State ini akan dilempar dari node ke node selama siklus eksekusi.
     """
     user_query: str                  # Pertanyaan asli dari user
+    relevant_tables: Optional[List[str]]  # Daftar tabel yang dipilih oleh Router Agent
     generated_sql: Optional[str]     # SQL hasil rakitan Gemini
     sql_error: Optional[str]         # Pesan error jika SQL gagal dieksekusi (untuk self-healing nanti)
     correction_attempts: int         # Berapa kali sudah mencoba membenarkan SQL (untuk self-healing)

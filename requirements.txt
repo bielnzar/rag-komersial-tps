@@ -7,3 +7,6 @@ duckdb
 pandas
 python-dotenv
 langchain-groq
+langchain-ollama
+langchain-community
+pytest>=8.0.0

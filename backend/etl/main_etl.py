@@ -4,9 +4,12 @@ import pandas as pd
 import duckdb
 from dotenv import load_dotenv
 
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 # Import modul lokal buatan kita
-from utils import logger, simpan_debug_csv
-from transformers import proses_vessel, proses_throughput, proses_market_share
+from etl.utils import logger, simpan_debug_csv
+from etl.transformers import proses_vessel, proses_throughput, proses_market_share
 
 # ==========================================
 # KONFIGURASI ENVIRONMENT
