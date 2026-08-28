@@ -1,8 +1,22 @@
 import pandas as pd
 import logging
-from utils import hapus_kolom_hantu, paksa_angka, pastikan_kolom_unik
+from etl.utils import hapus_kolom_hantu, paksa_angka, pastikan_kolom_unik
 
 logger = logging.getLogger(__name__)
+
+# 💡 PEMETAAN NORMALISASI KATEGORI
+# Nama sheet Excel kadang dalam bahasa Indonesia (misal "Domestik").
+# Setelah .upper(), ini menghasilkan 'DOMESTIK' alih-alih 'DOMESTIC'.
+# Pemetaan ini memastikan semua tabel fakta menggunakan standar bahasa Inggris.
+NORMALISASI_KATEGORI = {
+    'DOMESTIK': 'DOMESTIC',
+    'INTERNASIONAL': 'INTERNATIONAL',
+}
+
+def _normalisasi_nama_sheet(nama_sheet: str) -> str:
+    """Normalisasi nama sheet ke standar bahasa Inggris."""
+    upper = nama_sheet.upper()
+    return NORMALISASI_KATEGORI.get(upper, upper)
 
 # ==========================================
 # 1. TRANSFORMER: OVERVIEW VESSEL
@@ -19,7 +33,7 @@ def proses_vessel(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.DataFrame, pd.D
     df_gold = df_silver.copy()
     
     # Beri label dari mana data ini berasal (Domestik / Internasional)
-    df_gold['kategori_layanan'] = nama_sheet.upper()
+    df_gold['kategori_layanan'] = _normalisasi_nama_sheet(nama_sheet)
     
     # Standarisasi nama kolom ke format database (lowercase & snake_case) yang aman
     df_gold.columns = df_gold.columns.str.lower().str.replace(r'[^a-z0-9_]', '_', regex=True).str.replace(r'_+', '_', regex=True).str.strip('_')
@@ -41,7 +55,7 @@ def proses_throughput(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.DataFrame, 
     # --- BATAS SILVER LAYER ---
     df_gold = df_silver.copy()
     
-    df_gold['kategori_layanan'] = nama_sheet.upper()
+    df_gold['kategori_layanan'] = _normalisasi_nama_sheet(nama_sheet)
     df_gold.columns = df_gold.columns.str.lower().str.replace(r'[^a-z0-9_]', '_', regex=True).str.replace(r'_+', '_', regex=True).str.strip('_')
     
     return df_silver, pastikan_kolom_unik(df_gold), "fakta_throughput"

@@ -20,7 +20,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], # Mengizinkan semua origin untuk tujuan prototyping
-    allow_credentials=True,
+    allow_credentials=False, # Harus False jika origin adalah *
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -54,6 +54,7 @@ async def chat_endpoint(request: ChatRequest):
         # Menjalankan LangGraph
         initial_state = {
             "user_query": request.query,
+            "relevant_tables": None,
             "generated_sql": None,
             "sql_error": None,
             "correction_attempts": 0,

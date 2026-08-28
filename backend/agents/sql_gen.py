@@ -8,7 +8,7 @@ from .state import AgentState
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 DB_PATH = os.getenv("DUCKDB_PATH", str(BASE_DIR / "data/processed/tps_komersial.duckdb"))
 
-def get_duckdb_schema() -> str:
+def get_duckdb_schema(relevant_tables: list[str] | None = None) -> str:
     """Mengambil skema tabel dan kolom secara dinamis dari DuckDB."""
     try:
         conn = duckdb.connect(DB_PATH, read_only=True)
@@ -21,6 +21,10 @@ def get_duckdb_schema() -> str:
         df_schema = conn.execute(query).df()
         conn.close()
         
+        # Filter hanya tabel yang relevan jika tersedia
+        if relevant_tables:
+            df_schema = df_schema[df_schema['table_name'].isin(relevant_tables)]
+            
         schema_str = "Katalog Tabel Database DuckDB:\n"
         current_table = ""
         for _, row in df_schema.iterrows():
@@ -65,7 +69,8 @@ def sql_gen_node(state: AgentState) -> dict:
         ("human", "Pertanyaan Pengguna: {question}\n\n[INFO SELF-HEALING]\nPesan Error/Feedback dari eksekusi sebelumnya (jika ada, tolong perbaiki SQL Anda): {error}")
     ])
     
-    schema = get_duckdb_schema()
+    relevant_tables = state.get("relevant_tables")
+    schema = get_duckdb_schema(relevant_tables)
     sql_error = state.get("sql_error") or "Tidak ada error sebelumnya."
     
     chain = prompt | llm

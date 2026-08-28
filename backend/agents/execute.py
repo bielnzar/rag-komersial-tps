@@ -12,7 +12,12 @@ def execute_sql_node(state: AgentState) -> dict:
     Node untuk mengeksekusi SQL yang dihasilkan agen ke dalam DuckDB.
     """
     sql_query = state.get("generated_sql")
+    sql_error = state.get("sql_error")
     
+    # KUNCI KEAMANAN: Jika Sanitizer memblokir, JANGAN SEKALI-KALI mengeksekusi SQL ke DuckDB!
+    if sql_error and "SANITIZER BLOCKED" in sql_error:
+        return {"query_result": None}
+        
     if not sql_query:
         return {"sql_error": "Tidak ada SQL yang dihasilkan."}
         
