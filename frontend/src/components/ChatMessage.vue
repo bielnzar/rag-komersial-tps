@@ -35,9 +35,9 @@
         <span class="text-[11px] text-slate-500 font-mono">{{ message.timestamp }}</span>
       </div>
 
-      <!-- User Query Text / Assistant Narrative Answer (Markdown Formatted) -->
+      <!-- User Query Text / Assistant Narrative Answer (Smart Structured Formatting) -->
       <div
-        class="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans whitespace-pre-wrap"
+        class="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans"
         v-html="formattedContent"
       ></div>
 
@@ -46,8 +46,32 @@
         <!-- SQL Accordion -->
         <SqlAccordion :sql="message.sql" />
 
+        <!-- On-Demand Chart Trigger Action Bar (If Data Exists) -->
+        <div v-if="message.data && message.data.length > 0" class="mt-3.5 flex flex-wrap items-center gap-2">
+          <!-- Button 1: Toggle/Generate Chart -->
+          <button
+            v-if="!message.chartConfig"
+            @click="handleGenerateChart"
+            :disabled="isGeneratingChart"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-teal-950/80 hover:bg-teal-900 border border-teal-800/80 text-xs font-medium text-teal-300 transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+          >
+            <Loader2 v-if="isGeneratingChart" class="w-3.5 h-3.5 animate-spin text-teal-300" />
+            <BarChart3 v-else class="w-3.5 h-3.5 text-teal-400" />
+            <span>{{ isGeneratingChart ? 'Merakit ECharts...' : '📊 Visualisasikan Grafik' }}</span>
+          </button>
+
+          <button
+            v-else
+            @click="showChart = !showChart"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-850 border border-slate-800 text-xs font-medium text-slate-300 transition-all cursor-pointer"
+          >
+            <BarChart3 class="w-3.5 h-3.5 text-cyan-400" />
+            <span>{{ showChart ? '🙈 Sembunyikan Grafik' : '📊 Tampilkan Grafik' }}</span>
+          </button>
+        </div>
+
         <!-- ECharts Dynamic Chart View -->
-        <EChartsViewer :chart-config="message.chartConfig" />
+        <EChartsViewer v-if="showChart" :chart-config="message.chartConfig" />
 
         <!-- Raw Data Table View -->
         <DataTableModal :data="message.data" />
@@ -66,8 +90,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { User, Bot, AlertCircle } from './Icons.js'
+import { ref, computed } from 'vue'
+import { User, Bot, AlertCircle, BarChart3, Loader2 } from './Icons.js'
 import SqlAccordion from './SqlAccordion.vue'
 import EChartsViewer from './EChartsViewer.vue'
 import DataTableModal from './DataTableModal.vue'
@@ -79,18 +103,72 @@ const props = defineProps({
   }
 })
 
+const showChart = ref(true)
+const isGeneratingChart = ref(false)
+
+const handleGenerateChart = async () => {
+  if (isGeneratingChart.value || !props.message.data) return
+  isGeneratingChart.value = true
+
+  try {
+    const token = localStorage.getItem('tps_token')
+    const res = await fetch('/api/v1/visualize', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        query: props.message.userQuery || props.message.content,
+        data: props.message.data
+      })
+    })
+
+    if (!res.ok) throw new Error('Gagal merakit grafik.')
+    const json = await res.json()
+
+    if (json.chart_config && Object.keys(json.chart_config).length > 0) {
+      props.message.chartConfig = json.chart_config
+      showChart.value = true
+    }
+  } catch (err) {
+    console.error('Error visualisasi on-demand:', err)
+  } finally {
+    isGeneratingChart.value = false
+  }
+}
+
 const formattedContent = computed(() => {
   if (!props.message?.content) return ''
   let text = props.message.content
 
-  // Escape HTML tags sederhana untuk keamanan
+  // 1. Normalisasi Titik Dua (:) sebelum nomor list (misal: "Service: 1." -> "Service:\n\n1.")
+  text = text.replace(/:\s*(\d+\.\s+)/g, ':\n\n$1')
+
+  // 2. Auto-Break Nomor List (misal: " 2. BEN Line" -> "\n\n2. BEN Line")
+  text = text.replace(/(?<=[^\n])\s+(\d+\.\s+)/g, '\n\n$1')
+
+  // 3. Normalisasi Sub-Item Titik Koma (misal: "; Service PAX" -> "\n   - Service PAX")
+  text = text.replace(/;\s*(Service\s+)/gi, '\n   - $1')
+
+  // 4. Escape HTML tags untuk keamanan
   text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-  // Parse **bold text** menjadi <strong class="font-bold text-cyan-300">bold text</strong>
+  // 5. Bold **text** -> <strong class="font-bold text-cyan-300">text</strong>
   text = text.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-cyan-300">$1</strong>')
 
-  // Parse *italic text* menjadi <em class="italic text-slate-300">italic text</em>
+  // 6. Italic *text* -> <em class="italic text-slate-300">text</em>
   text = text.replace(/\*(.*?)\*/g, '<em class="italic text-slate-300">$1</em>')
+
+  // 7. Styling Nomor List "1. ", "1.CMA", "1CMA" -> Badge Terstruktur Rapi dengan Spasi
+  text = text.replace(/(?:^|(?<=\n))\s*(\d+)\.?(?=\s|[A-Z]|\*\*)/gm, '<span class="inline-flex items-center justify-center w-5 h-5 rounded-md bg-slate-900 border border-slate-700 text-teal-300 font-mono text-[11px] font-bold mr-2 my-0.5 shadow-sm">$1</span> ')
+
+  // 8. Styling Sub-bullet "- " -> Point Bullet Cyan
+  text = text.replace(/^\s*-\s+/gm, '<span class="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 mr-2 ml-4"></span>')
+
+  // 9. Convert Newlines ke Spacing Div / BR
+  text = text.replace(/\n\n/g, '<div class="h-2.5"></div>')
+  text = text.replace(/\n/g, '<br />')
 
   return text
 })

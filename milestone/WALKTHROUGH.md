@@ -26,8 +26,11 @@ flowchart LR
     end
 
     subgraph AI["🤖 AI Orchestration (LangGraph)"]
-        E["User Query"] --> F["sql_gen\n(Gemini 3.6 Flash)"]
-        F --> G["execute_sql\n(DuckDB)"]
+        E["User Query"] --> R["router\n(Gemini 3.6 Flash)"]
+        R --> F["sql_gen\n(Gemini 3.6 Flash)"]
+        F --> S["sanitizer\n(Hard Rules Dual-Layer)"]
+        S -->|Aman| G["execute_sql\n(DuckDB read-only)"]
+        S -->|Terblokir| H
         G -->|Error / Empty| F
         G -->|Success| H["viz_gen\n(Groq GPT-OSS-20B)"]
     end
@@ -54,25 +57,51 @@ rag-komersial-tps/
 ├── test_viz.py                  # Skrip tes VizGen node
 │
 ├── backend/
-│   ├── .env                     # API keys (Gemini, Groq)
+│   ├── .env                     # API keys (Gemini)
 │   ├── BACKEND.MD               # Dokumentasi developer backend
 │   ├── main.py                  # Entry point FastAPI
+│   ├── lihatdata.py             # Helper inspeksi DuckDB
 │   ├── agents/                  # Orkestrasi AI (LangGraph)
-│   │   ├── state.py             # AgentState TypedDict
-│   │   ├── graph.py             # StateGraph builder + conditional router
-│   │   ├── sql_gen.py           # Node: Text-to-SQL (Gemini)
-│   │   ├── execute.py           # Node: Eksekusi SQL + deteksi empty
-│   │   └── viz_gen.py           # Node: NLG + ECharts JSON (Groq)
-│   └── etl/                     # Pipeline Medallion
-│       ├── main_etl.py          # Orchestrator ETL (router per file)
-│       ├── transformers.py      # Fungsi transformasi per dataset
-│       └── utils.py             # Helpers: cleaning, logging, debug CSV
+│   │   ├── state.py             # AgentState TypedDict (+ relevant_tables)
+│   │   ├── graph.py             # StateGraph builder + dual conditional edges
+│   │   ├── router.py            # Node 1: Router Agent (Gemini 3.6 Flash)
+│   │   ├── sql_gen.py           # Node 2: Text-to-SQL (Gemini 3.6 Flash)
+│   │   ├── sanitizer.py         # Node 3: Hard Rules Dual-Layer Sanitizer
+│   │   ├── execute.py           # Node 4: Eksekusi SQL + deteksi empty
+│   │   └── viz_gen.py           # Node 5: NLG + ECharts JSON (Groq openai/gpt-oss-20b)
+│   ├── etl/                     # Pipeline Medallion
+│   │   ├── main_etl.py          # Orchestrator ETL (router per file)
+│   │   ├── transformers.py      # Fungsi transformasi per dataset
+│   │   └── utils.py             # Helpers: cleaning, logging, debug CSV
+│   └── tests/                   # Unit tests (pytest)
+│       ├── test_etl.py          # 4 test cases ETL pipeline
+│       ├── test_router.py       # 1 test case Router Agent
+│       └── test_sanitizer.py    # 5 test cases (termasuk SQL Injection)
+│
+├── frontend/                    # Vue 3 + Vite + Tailwind CSS
+│   ├── index.html               # Entry HTML + ECharts CDN + Google Fonts
+│   ├── package.json             # Dependencies (vue, vite, tailwindcss)
+│   ├── vite.config.js           # Proxy /api → localhost:8000
+│   ├── tailwind.config.js       # Custom dark theme config
+│   └── src/
+│       ├── main.js              # Vue app mount
+│       ├── App.vue              # Root layout + chat state
+│       ├── style.css            # Tailwind + custom CSS (card-executive, bg-mesh)
+│       └── components/
+│           ├── Navbar.vue       # Header corporate PT TPS + logo fallback
+│           ├── PromptSuggestions.vue  # 3 interactive analytics cards
+│           ├── ChatMessage.vue  # Bubble percakapan + markdown parser
+│           ├── ChatInput.vue    # Command palette + rotating loading
+│           ├── SqlAccordion.vue # Collapsible SQL viewer + copy button
+│           ├── EChartsViewer.vue # Dynamic chart + sanitizeChartOption()
+│           ├── DataTableModal.vue # Collapsible raw data table
+│           └── Icons.js         # Zero-dependency SVG icon set
 │
 ├── data/
 │   ├── raw/                     # 9 file Excel sumber (.xlsx)
-│   ├── bronze/                  # 17 CSV checkpoint (data mentah)
-│   ├── silver/                  # 17 CSV checkpoint (data bersih)
-│   ├── gold/                    # 17 CSV checkpoint (data matang)
+│   ├── bronze/                  # CSV checkpoint (data mentah)
+│   ├── silver/                  # CSV checkpoint (data bersih)
+│   ├── gold/                    # CSV checkpoint (data matang)
 │   └── processed/
 │       └── tps_komersial.duckdb # Database persisten (~2.1 MB)
 │
@@ -183,27 +212,34 @@ Didefinisikan di `state.py`:
 
 ```python
 class AgentState(TypedDict):
-    user_query: str                  # Pertanyaan user
-    generated_sql: Optional[str]     # SQL rakitan LLM
-    sql_error: Optional[str]         # Error message (trigger self-healing)
-    correction_attempts: int         # Counter percobaan (max 3)
-    query_result: Optional[List[dict]]  # Hasil DuckDB
-    final_answer: Optional[str]      # Narasi jawaban
-    echarts_config: Optional[dict]   # JSON konfigurasi grafik
+    user_query: str                       # Pertanyaan asli dari user
+    relevant_tables: Optional[List[str]]  # Tabel terpilih oleh Router Agent
+    generated_sql: Optional[str]          # SQL rakitan LLM
+    sql_error: Optional[str]              # Error message (trigger self-healing)
+    correction_attempts: int              # Counter percobaan (max 3)
+    query_result: Optional[List[dict]]    # Hasil DuckDB
+    final_answer: Optional[str]           # Narasi jawaban
+    echarts_config: Optional[dict]        # JSON konfigurasi grafik
 ```
 
 ### 6.2 Graf Eksekusi (`graph.py`)
 
 ```mermaid
 stateDiagram-v2
-    [*] --> sql_gen
-    sql_gen --> execute_sql
-    execute_sql --> sql_gen : Error & attempts < 3\n(Self-Healing)
+    [*] --> router
+    router --> sql_gen
+    sql_gen --> sanitizer
+    sanitizer --> execute_sql : Lolos validasi
+    sanitizer --> sql_gen : Error & attempts < 3 (Self-Healing)
+    sanitizer --> viz_gen : Terblokir total (attempts >= 3)
+    execute_sql --> sql_gen : Error & attempts < 3 (Self-Healing)
     execute_sql --> viz_gen : Success / Max Attempts
     viz_gen --> [*]
 ```
 
-Fungsi `should_continue` menentukan apakah lanjut ke `viz_gen` atau putar balik ke `sql_gen`.
+Terdapat dua fungsi conditional router:
+- `should_continue_sanitizer` — 3-way routing (sql_gen / execute_sql / viz_gen)
+- `should_continue` — 2-way routing (sql_gen / viz_gen)
 
 ### 6.3 Node 1: SQL Generator (`sql_gen.py`)
 
@@ -225,15 +261,29 @@ Fungsi `should_continue` menentukan apakah lanjut ke `viz_gen` atau putar balik 
 - Increment `correction_attempts` untuk trigger self-healing
 - Convert datetime columns ke string untuk serialisasi JSON
 
-### 6.5 Node 3: Visualization Generator (`viz_gen.py`)
+### 6.5 Node 3: Hard Rules Sanitizer (`sanitizer.py`)
 
-- **LLM:** `openai/gpt-oss-20b` via `langchain-groq` (Groq inference)
+- **Tanpa LLM** — sepenuhnya berbasis rule/regex
+- **Dual-Layer Guard:**
+  - **Input Guard:** Memeriksa `user_query` terhadap `;`, keyword DDL/DML (`DROP`, `DELETE`, `INSERT`, dll), dan syntax komentar SQL (`--`, `/*`)
+  - **Output Guard:** Memeriksa `generated_sql` terhadap multiple statements, keyword terlarang, dan validasi tabel terhadap skema DuckDB
+- Jika terdeteksi serangan, `correction_attempts` dipaksa ke `3` (max) → langsung blokir tanpa retry
+
+### 6.6 Node 4: SQL Executor (`execute.py`)
+
+(Sama seperti sebelumnya, dengan tambahan defense-in-depth guard: jika `sql_error` mengandung `SANITIZER BLOCKED`, eksekusi DuckDB langsung dibatalkan)
+
+### 6.7 Node 5: Visualization Generator (`viz_gen.py`)
+
+- **LLM:** `openai/gpt-oss-20b` via `langchain-groq` (Groq Inference Engine)
 - **Pydantic Structured Output** (`VizOutput`) memaksa output terstruktur:
   - `answer`: Narasi teks profesional
   - `echarts_config`: JSON Apache ECharts (bar/line/pie) atau dict kosong
+- Data dibatasi maksimal 50 baris pertama untuk mencegah rate limit TPM pada tier gratis Groq
+- Jika Sanitizer memblokir, langsung mengembalikan pesan penolakan keamanan resmi tanpa memanggil LLM
 
 > **CATATAN:**
-> sql_gen menggunakan **Gemini** (Google), sedangkan viz_gen menggunakan **Groq** — dua provider LLM berbeda. Ini menarik karena SQL generation dianggap membutuhkan reasoning yang lebih kuat (Gemini 3.6 Flash), sedangkan NLG + chart formatting menggunakan Groq yang sangat cepat.
+> Arsitektur menggunakan strategi **Dual-LLM**: Gemini 3.6 Flash untuk Reasoning & Text-to-SQL (`router`, `sql_gen`), dan Groq `openai/gpt-oss-20b` untuk kecepatan generasi narasi & visualisasi (`viz_gen`).
 
 ---
 
@@ -275,57 +325,52 @@ class ChatResponse(BaseModel):
 | Milestone | Status | Deliverable |
 |---|---|---|
 | **M1** — Data Engineering ETL | ✅ Selesai | Pipeline Medallion, 3 tabel fakta di DuckDB |
-| **M2** — AI Text-to-SQL Core | ✅ Selesai | FastAPI + LangGraph linear (sql_gen → execute) |
-| **M3** — Advanced Orchestration | ✅ Selesai | Semantic Layer, Self-Healing Loop (max 3 retry) |
+| **M2** — AI Text-to-SQL Core | ✅ Selesai | FastAPI + LangGraph + Gemini 3.6 Flash |
+| **M3** — Advanced Orchestration | ✅ Selesai | Semantic Layer, Self-Healing Loop (max 3 retry), Router Agent |
 | **M4** — Visualisasi ECharts | ✅ Selesai | Pydantic Structured Output, echarts_config JSON |
-| **M5** — Frontend UI/UX | ✅ Selesai | Vue.js 3 + Tailwind CSS + Apache ECharts + Glassmorphism |
+| **M5** — Frontend UI/UX | ✅ Selesai | Vue 3 + Vite + Tailwind CSS + Apache ECharts CDN, 8 komponen |
 
 ---
 
 ## 9. Gap Analysis & Temuan Penting
 
-### 🔴 Isu Kritis
+### 🔴 Isu Kritis (Belum Terselesaikan)
 
 1. **6 dari 9 file Excel belum diproses ETL**
    - `Komersial Dashboard.xlsx`, `Realisasi UC.xlsx`, `RestNDisc.xlsx`, `Transhipment.xlsx` (1.4 MB, file terbesar!), `VESSEL SERVICE.xlsx`, `OVERVIEW BOX.xlsx` — semua belum punya transformer
    - Artinya LLM hanya bisa menjawab pertanyaan seputar vessel, throughput, dan market share
 
-2. **Belum ada Router Agent (Agen 1)**
-   - Berdasarkan `SYSTEM_CONTEXT.md`, seharusnya ada `RouterNode` untuk memilih tabel relevan sebelum SQL gen
-   - Saat ini SQL gen langsung menerima **seluruh skema** — boros token dan rawan salah pilih tabel
-
-3. **Belum ada RBAC (Role-Based Access Control)**
+2. **Belum ada RBAC (Role-Based Access Control)**
    - `user_id` dan `role` diterima di request tapi **tidak digunakan** di LangGraph
    - Tidak ada `RBACNode` atau `CheckCacheNode` yang di-mention di blueprint
 
-4. **Belum ada Redis Semantic Cache**
+3. **Belum ada Redis Semantic Cache**
    - Disebutkan di arsitektur tapi belum diimplementasi
 
-5. **Hard Rules Sanitizer belum ada**
-   - Seharusnya ada node validasi SQL (hanya 1 SELECT, tabel valid, format DuckDB) sebelum eksekusi
+### 🟡 Isu Sedang (Sebagian Sudah Diperbaiki)
 
-### 🟡 Isu Sedang
+4. ~~Inkonsistensi `kategori_layanan` `DOMESTIK` vs `DOMESTIC`~~ → ✅ **DIPERBAIKI** via `_normalisasi_nama_sheet()` (perlu re-ETL untuk memastikan data lama ternormalisasi)
 
-6. **Inkonsistensi `kategori_layanan`** pada tabel fakta_throughput
-   - Sheet "Domestik" menghasilkan `kategori_layanan = 'DOMESTIK'` (bahasa Indonesia)
-   - Sheet lain menggunakan `'DOMESTIC'` (bahasa Inggris)
-   - Ini bisa membingungkan LLM meski sudah ada Glosarium
+5. ~~`DUCKDB_PATH` relative path konflik~~ → ✅ **DIPERBAIKI** (`BASE_DIR` absolut, `.env` dibersihkan)
 
-7. **`DUCKDB_PATH` di .env** mengarah ke `../data/processed/tps_komersial.duckdb`
-   - Ini adalah relative path dari `backend/` yang bekerja saat menjalankan dari `backend/`
-   - Tapi `BASE_DIR` di kode sudah resolve ke absolute path — bisa terjadi konflik
+6. ~~Tidak ada unit test formal~~ → ✅ **DIPERBAIKI** (3 file test, 10 test cases: `test_etl.py`, `test_router.py`, `test_sanitizer.py`)
 
-8. **Tidak ada unit test formal** — hanya ada `test_db.py` dan `test_viz.py` sebagai skrip ad-hoc
+7. ~~Belum ada frontend~~ → ✅ **SELESAI** (Vue 3 + Vite + Tailwind CSS, 8 komponen)
 
-9. **Belum ada frontend sama sekali** — Milestone 5 belum dimulai
+8. ~~Belum ada Router Agent~~ → ✅ **SELESAI** (`router.py`, Gemini 3.6 Flash)
+
+9. ~~Hard Rules Sanitizer belum ada~~ → ✅ **SELESAI** (`sanitizer.py`, Dual-Layer Guard)
+
+10. **CORS `allow_origins=["*"]`** — aman untuk prototyping tapi harus diubah untuk production
 
 ### 🟢 Hal Positif
 
-10. **ETL sangat rapi** — Logging dengan RotatingFileHandler, debug CSV checkpoint, modular transformers
-11. **Self-Healing bekerja baik** — Deteksi syntax error + empty result + pesan teguran kontekstual
-12. **Dual-LLM strategy** cerdas — Gemini untuk code-gen, Groq untuk narasi (menghindari bottleneck satu provider)
-13. **Pydantic Structured Output** di viz_gen — mencegah LLM menghasilkan JSON yang rusak
-14. **Dokumentasi sangat baik** — Setiap milestone didokumentasikan dengan jelas dan naratif
+11. **ETL sangat rapi** — Logging dengan RotatingFileHandler, debug CSV checkpoint, modular transformers
+12. **Self-Healing bekerja baik** — Deteksi syntax error + empty result + pesan teguran kontekstual
+13. **Single-LLM strategy (Gemini 3.6 Flash)** — konsisten dan menghindari rate limit Groq
+14. **Pydantic Structured Output** di viz_gen — mencegah LLM menghasilkan JSON yang rusak
+15. **Dokumentasi sangat baik** — Setiap milestone didokumentasikan dengan jelas dan naratif
+16. **Keamanan Dual-Layer Sanitizer** — memblokir SQL Injection di level input (user_query) dan output (generated_sql)
 
 ---
 
@@ -335,14 +380,16 @@ class ChatResponse(BaseModel):
 |---|---|---|
 | Backend | FastAPI | ✅ FastAPI |
 | Database | DuckDB Persistent | ✅ DuckDB |
-| ETL | Pandas + Medallion | ✅ Pandas |
-| Orchestrator | LangGraph | ✅ LangGraph |
-| LLM (SQL) | Gemini 1.5 Flash | ⚠️ `gemini-3.6-flash` (lebih baru) |
-| LLM (Viz) | Gemini | ⚠️ Groq `gpt-oss-20b` (provider berbeda) |
+| ETL | Pandas + Medallion | ✅ Pandas (3/9 file) |
+| Orchestrator | LangGraph | ✅ LangGraph (5 nodes) |
+| LLM (Router) | — | ✅ Gemini 3.6 Flash |
+| LLM (SQL) | Gemini 1.5 Flash | ✅ Gemini 3.6 Flash |
+| LLM (Viz) | Gemini / Groq | ✅ Groq `openai/gpt-oss-20b` |
+| Security | Hard Rules Sanitizer | ✅ Dual-Layer Guard (Input + Output) |
 | Validasi Data | Pandera/Pydantic | ❌ Belum ada (manual cleaning saja) |
 | Cache | Redis Semantic | ❌ Belum ada |
 | Scheduler | APScheduler/Watchdog | ❌ Belum ada (ETL manual) |
-| Frontend | Vue.js 3 + Tailwind + ECharts | ❌ Belum ada (Milestone 5) |
+| Frontend | Vue.js 3 + Tailwind + ECharts | ✅ Vue 3 + Vite + Tailwind + ECharts CDN |
 
 ---
 
@@ -350,21 +397,26 @@ class ChatResponse(BaseModel):
 
 Berdasarkan analisis di atas, urutan prioritas pengembangan:
 
-### Milestone 5 — Frontend UI/UX (Prioritas Utama)
-- [x] Inisialisasi Vue.js 3 project di folder `frontend/`
-- [x] Integrasi Tailwind CSS & Custom Glassmorphism System
-- [x] Komponen chatbot (input, message history, pipeline loading states)
-- [x] Render Apache ECharts dari `echarts_config` JSON
-- [x] Responsive design & maritime aesthetic polish
+### Milestone 5 — Frontend UI/UX ✅ SELESAI
+- [x] Inisialisasi Vue 3 project di folder `frontend/` (Vite)
+- [x] Integrasi Tailwind CSS & Executive Dark Theme
+- [x] 8 Komponen Vue (Navbar, ChatMessage, ChatInput, EChartsViewer, SqlAccordion, DataTableModal, PromptSuggestions, Icons)
+- [x] Render Apache ECharts dari `echarts_config` JSON + `sanitizeChartOption()` auto-fix
+- [x] Responsive design & rotating loading messages
+- [x] Logo PT TPS fallback otomatis
+- [x] Markdown bold/italic parser pada bubble jawaban AI
 
-### Backend Enhancements (Bisa Paralel)
+### Backend Enhancements — Status
 - [ ] Tambah transformer untuk 6 file Excel yang belum diproses
 - [x] Implementasi Router Agent (pilih tabel relevan)
-- [x] Implementasi Hard Rules Sanitizer
+- [x] Implementasi Hard Rules Sanitizer (Dual-Layer Guard)
+- [x] Migrasi Viz Gen dari Groq ke Gemini 3.6 Flash
+- [x] Endpoint `/api/v1/data/status` riil (query DuckDB)
+- [x] Fix inkonsistensi `DOMESTIK` vs `DOMESTIC`
+- [x] Unit tests formal (10 test cases)
 - [ ] Implementasi RBAC (filter berdasarkan role)
 - [ ] Setup Redis Semantic Cache
 - [ ] Validasi Data Contract (Pandera/Pydantic)
-- [x] Fix inkonsistensi `DOMESTIK` vs `DOMESTIC`
 
 ---
 

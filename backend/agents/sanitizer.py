@@ -1,9 +1,13 @@
 import re
-import duckdb
 import os
 from pathlib import Path
 from .state import AgentState
 import logging
+
+try:
+    from db import get_db
+except ImportError:
+    from ..db import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +18,7 @@ DB_PATH = os.getenv("DUCKDB_PATH", str(BASE_DIR / "data/processed/tps_komersial.
 FORBIDDEN_KEYWORDS = [
     r'\bINSERT\b', r'\bUPDATE\b', r'\bDELETE\b', r'\bDROP\b', 
     r'\bALTER\b', r'\bCREATE\b', r'\bTRUNCATE\b', r'\bGRANT\b', 
-    r'\bREVOKE\b', r'\bMERGE\b', r'\bREPLACE\b', r'\bEXEC\b', r'\bEXECUTE\b'
+    r'\bREVOKE\b', r'\bMERGE\b', r'\bEXEC\b', r'\bEXECUTE\b'
 ]
 
 def sanitizer_node(state: AgentState) -> dict:
@@ -65,28 +69,30 @@ def sanitizer_node(state: AgentState) -> dict:
                 clean_keyword = keyword.replace(r'\b', '')
                 errors.append(f"Dilarang menggunakan keyword modifikasi data '{clean_keyword}'. Anda HANYA diizinkan menggunakan perintah SELECT.")
                 
-        # 2c. Verifikasi bahwa tabel yang dirujuk benar-benar ada di DuckDB schema
+        # 2c. Verifikasi bahwa tabel yang dirujuk benar-benar ada di DuckDB schema via shared pool (mendukung CTE WITH ... AS)
         try:
-            conn = duckdb.connect(DB_PATH, read_only=True)
+            conn = get_db()
             valid_tables = {row[0].lower() for row in conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='main'").fetchall()}
-            conn.close()
+            
+            cte_matches = {m.lower() for m in re.findall(r'\b(?:WITH|,)\s*([a-zA-Z0-9_]+)\s+AS\s*\(', sql_query, re.IGNORECASE)}
+            allowed_tables = valid_tables | cte_matches
             
             table_matches = re.findall(r'\b(?:FROM|JOIN)\s+([a-zA-Z0-9_]+)', upper_sql, re.IGNORECASE)
             for tbl in table_matches:
-                if tbl.lower() not in valid_tables:
+                if tbl.lower() not in allowed_tables:
                     errors.append(f"Tabel '{tbl}' tidak ditemukan di skema database. Periksa kembali struktur tabel.")
         except Exception as e:
             logger.error(f"❌ Sanitizer gagal memvalidasi tabel terhadap DuckDB: {e}")
 
     # -------------------------------------------------------------
-    # RESPON BLOKIR JIKA ADA PELANGGARAN ATURAN KEAMANAN
+    # RESPON BLOKIR JIKA ADA PELANGGARAN ATURAN KEAMANAN (FAIL-FAST)
     # -------------------------------------------------------------
     if errors:
         error_msg = "SANITIZER BLOCKED: " + " | ".join(errors)
         logger.warning(f"🛡️ {error_msg}")
         return {
             "sql_error": error_msg,
-            "correction_attempts": max(current_attempts + 1, 3) # Paksa max attempts jika terdapat upaya injeksi berbahaya
+            "correction_attempts": 0
         }
         
     return {"sql_error": None}
