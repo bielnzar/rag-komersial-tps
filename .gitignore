@@ -7,15 +7,20 @@ venv/
 env/
 .venv/
 
-# Environment Variables (SANGAT PENTING: Jangan sampai API Key bocor!)
+# Environment Variables & Kredensial Rahasia (SANGAT PENTING: Ditolak dari Git agar tidak ke-push ke GitHub)
 .env
 .env.*
+credentials/
+credentials/*
+*.key
+*.pem
 
 # Databases & Data Files
 # Mengabaikan file DuckDB karena ukurannya bisa sangat besar dan merupakan hasil generate lokal
 *.duckdb
 *.duckdb.wal
 data/processed/*.duckdb
+data/*
 
 # Logs
 logs/
@@ -27,7 +32,7 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Frontend (Meskipun kita pakai CDN, ini untuk jaga-jaga jika nanti ada npm install)
+# Frontend
 node_modules/
 dist/
 npm-debug.log*

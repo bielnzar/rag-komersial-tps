@@ -1,8 +1,7 @@
 import os
-import duckdb
 from pathlib import Path
+from db import get_db
 
-# Path absolut otomatis agar dapat dijalankan dari folder manapun
 BASE_DIR = Path(__file__).resolve().parent.parent if Path(__file__).resolve().parent.name == 'backend' else Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / 'data' / 'processed' / 'tps_komersial.duckdb'
 
@@ -10,7 +9,7 @@ if not DB_PATH.exists():
     print(f"❌ Error: Database tidak ditemukan di lokasi: {DB_PATH}")
     exit(1)
 
-conn = duckdb.connect(str(DB_PATH), read_only=True)
+conn = get_db(str(DB_PATH))
 
 print("==========================================")
 print("   DUCKDB PT TPS KOMERSIAL INSPECTION     ")
@@ -27,5 +26,3 @@ for t in tables:
     cols = conn.execute(f"PRAGMA table_info('{tbl_name}');").fetchall()
     col_str = ", ".join([f"{c[1]} ({c[2]})" for c in cols])
     print(f"   Kolom: {col_str}")
-
-conn.close()

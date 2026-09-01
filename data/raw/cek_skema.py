@@ -1,31 +1,50 @@
+import os
 import pandas as pd
+from pathlib import Path
 
-# Ganti dengan nama file Excel kamu
-path_data = "csv" 
-pen_namaan = "Market Share"
-nama_file_excel = f"{pen_namaan}.xlsx" 
-nama_file_csv = f"{path_data}/{pen_namaan}.csv"
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+RAW_DIR = BASE_DIR / "data" / "raw"
+CSV_OUT_DIR = RAW_DIR / "csv"
 
-try:
-    print(f"⏳ Sedang membaca {nama_file_excel}...")
-    semua_sheet = pd.read_excel(nama_file_excel, sheet_name=None)
-    
-    daftar_skema = []
-    
-    # Looping ke semua sheet untuk mengambil metadata
-    for nama_sheet, df in semua_sheet.items():
-        for kolom, tipe in df.dtypes.items():
-            daftar_skema.append({
-                "Nama Sheet": nama_sheet,
-                "Nama Kolom": kolom,
-                "Tipe Data": str(tipe)
-            })
+os.makedirs(CSV_OUT_DIR, exist_ok=True)
+
+SISA_FILES = [
+    "Transhipment.xlsx",
+    "VESSEL SERVICE.xlsx",
+    "Komersial Dashboard.xlsx",
+    "Realisasi UC.xlsx",
+    "OVERVIEW BOX.xlsx",
+    "RestNDisc.xlsx"
+]
+
+print("==================================================")
+print("   INSPEKSI SKEMA & KONVERSI 6 FILE EXCEL SISA    ")
+print("==================================================")
+
+for file_name in SISA_FILES:
+    file_path = RAW_DIR / file_name
+    if not file_path.exists():
+        print(f"⚠️ File tidak ditemukan: {file_name}")
+        continue
+
+    print(f"\n📂 MEMBEDAH FILE: {file_name}")
+    try:
+        excel_file = pd.read_excel(file_path, sheet_name=None)
+        for sheet_name, df in excel_file.items():
+            clean_sheet_name = "".join(c for c in sheet_name if c.isalnum() or c in (' ', '_', '-')).strip()
+            out_csv_name = f"{file_name.replace('.xlsx', '')}_{clean_sheet_name}.csv"
+            out_csv_path = CSV_OUT_DIR / out_csv_name
             
-    # Simpan hasil ekstraksi ke CSV
-    df_skema = pd.DataFrame(daftar_skema)
-    df_skema.to_csv(nama_file_csv, index=False)
-    
-    print(f"✅ Berhasil! Skema telah diekspor ke '{nama_file_csv}'")
+            # Simpan 100 baris pertama sebagai CSV preview agar cepat dan mudah dibaca
+            df.head(100).to_csv(out_csv_path, index=False)
+            
+            print(f"  📄 Sheet: '{sheet_name}' | Ukuran: {df.shape[0]} baris x {df.shape[1]} kolom")
+            print(f"     Sub-kolom: {list(df.columns[:8])}{'...' if len(df.columns) > 8 else ''}")
+            print(f"     💾 Preview CSV tersimpan di: data/raw/csv/{out_csv_name}")
 
-except Exception as e:
-    print(f"❌ Terjadi kesalahan: {e}")
+    except Exception as e:
+        print(f"  ❌ Error membaca {file_name}: {e}")
+
+print("\n==================================================")
+print("🎉 INSPEKSI SELESAI! CSV Preview tersimpan di data/raw/csv/")
+print("==================================================")

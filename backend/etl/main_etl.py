@@ -9,7 +9,17 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 # Import modul lokal buatan kita
 from etl.utils import logger, simpan_debug_csv
-from etl.transformers import proses_vessel, proses_throughput, proses_market_share
+from etl.transformers import (
+    proses_vessel, 
+    proses_throughput, 
+    proses_market_share,
+    proses_transhipment,
+    proses_vessel_service,
+    proses_komersial_dashboard,
+    proses_realisasi_uc,
+    proses_overview_box,
+    proses_rest_n_disc
+)
 
 # ==========================================
 # KONFIGURASI ENVIRONMENT
@@ -23,16 +33,22 @@ RAW_DIR = str(BASE_DIR / "data/raw")
 
 # ==========================================
 # PETA RUTE (ROUTER)
-# Menghubungkan nama file Excel dengan fungsi transformernya
+# Menghubungkan seluruh 9 nama file Excel dengan fungsi transformernya
 # ==========================================
 FILE_ROUTER = {
     "OVERVIEW VESSEL.xlsx": proses_vessel,
     "Container Throughput.xlsx": proses_throughput,
-    "Market Share.xlsx": proses_market_share
+    "Market Share.xlsx": proses_market_share,
+    "Transhipment.xlsx": proses_transhipment,
+    "VESSEL SERVICE.xlsx": proses_vessel_service,
+    "Komersial Dashboard.xlsx": proses_komersial_dashboard,
+    "Realisasi UC.xlsx": proses_realisasi_uc,
+    "OVERVIEW BOX.xlsx": proses_overview_box,
+    "RestNDisc.xlsx": proses_rest_n_disc
 }
 
 def jalankan_etl():
-    logger.info("🚀 MEMULAI PROSES ETL MEDALLION...")
+    logger.info("🚀 MEMULAI PROSES ETL MEDALLION LENGKAP (9 FILE EXCEL)...")
     
     # Pastikan folder tempat DuckDB berada sudah eksis
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
@@ -41,7 +57,6 @@ def jalankan_etl():
     conn = duckdb.connect(DB_PATH)
     
     # Dictionary untuk menampung gabungan dataframe antar-sheet
-    # Contoh isi: {"fakta_vessel": [df_domestik, df_internasional]}
     koleksi_tabel = {}
 
     # ==========================================
@@ -62,16 +77,16 @@ def jalankan_etl():
                     logger.info(f"   ⚙️ Memproses sheet: {nama_sheet}")
                     
                     # Checkpoint Bronze (Opsional)
-                    simpan_debug_csv(df_mentah, str(BASE_DIR / "data/bronze"), f"bronze_{nama_sheet}.csv", DEBUG_MODE)
+                    simpan_debug_csv(df_mentah, str(BASE_DIR / "data/bronze"), f"bronze_{nama_file}_{nama_sheet}.csv", DEBUG_MODE)
                     
                     # 🥈 Eksekusi Transformer (Silver Layer & Gold Layer)
                     df_silver, df_gold, nama_tabel = fungsi_proses(df_mentah, nama_sheet)
                     
                     # Checkpoint Silver (Opsional)
-                    simpan_debug_csv(df_silver, str(BASE_DIR / "data/silver"), f"silver_{nama_sheet}.csv", DEBUG_MODE)
+                    simpan_debug_csv(df_silver, str(BASE_DIR / "data/silver"), f"silver_{nama_file}_{nama_sheet}.csv", DEBUG_MODE)
                     
                     # Checkpoint Gold (Opsional)
-                    simpan_debug_csv(df_gold, str(BASE_DIR / "data/gold"), f"gold_{nama_sheet}.csv", DEBUG_MODE)
+                    simpan_debug_csv(df_gold, str(BASE_DIR / "data/gold"), f"gold_{nama_file}_{nama_sheet}.csv", DEBUG_MODE)
                     
                     # Tampung dataframe matang untuk digabungkan nanti
                     if nama_tabel not in koleksi_tabel:
@@ -89,14 +104,10 @@ def jalankan_etl():
         if daftar_df: # Jika ada isinya
             try:
                 # 🥇 KUNCI ARSITEKTUR: Menggabungkan (Concat) semua sheet yang setipe
-                # Misal: df_vessel_domestik + df_vessel_internasional digabung memanjang ke bawah
                 df_final = pd.concat(daftar_df, ignore_index=True)
                 
-                # 💡 PENAWAR DUCKDB SCHEMA INFERENCE ERROR (BIGINT -> TIMESTAMP, dsb)
-                # DuckDB sering crash jika satu kolom berisi campuran (misal teks "-" dan angka, atau Timestamp dan Integer)
-                # Solusinya: Konversi kolom bertipe 'object' (campuran) atau 'datetime' menjadi String secara aman
+                # 💡 PENAWAR DUCKDB SCHEMA INFERENCE ERROR
                 for col in df_final.select_dtypes(include=['object', 'str', 'datetime']).columns:
-                    # Pastikan nilai kosong (NaN/None) tidak berubah menjadi teks "nan"
                     df_final[col] = df_final[col].apply(lambda x: str(x) if pd.notnull(x) else None)
                 
                 # Simpan ke DuckDB (Menimpa tabel lama jika sudah ada)
@@ -110,7 +121,7 @@ def jalankan_etl():
 
     # Tutup koneksi dengan aman
     conn.close()
-    logger.info("🎉 PROSES ETL SELESAI DENGAN SUKSES!")
+    logger.info("🎉 PROSES ETL MEDALLION LENGKAP SELESAI DENGAN SUKSES!")
 
 if __name__ == "__main__":
     jalankan_etl()
