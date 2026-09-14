@@ -36,7 +36,8 @@ def get_table_catalog() -> str:
         "fakta_vessel": "Data operasional kapal, BCH, BSH, box, dan TEUs per operator.",
         "fakta_vessel_service": "Rute pelayaran, service mode, total call kapal, BMPH, GMPH per operator pelayaran.",
         "fakta_transhipment": "Aktivitas transhipment kontainer (20ft, 40ft, 45ft), vessel revenue, yard revenue.",
-        "fakta_overview_box": "Ringkasan jumlah box dan TEUs per kategori layanan."
+        "fakta_overview_box": "Ringkasan jumlah box dan TEUs per kategori layanan.",
+        "dim_vessel_operator": "Tabel master dimensi daftar resmi operator kapal/pelayaran (vessel operator) di TPS, kode LOP (code), dan nama lengkap perusahaan (full_name)."
     }
 
     try:
@@ -65,7 +66,7 @@ def get_table_catalog() -> str:
         return catalog
     except Exception as e:
         logger.error(f"Gagal membaca catalog DuckDB: {e}")
-        return "Daftar Tabel: fakta_throughput, fakta_komersial_dashboard, fakta_market_share, fakta_realisasi_uc, fakta_rest_n_disc, fakta_vessel, fakta_vessel_service, fakta_transhipment, fakta_overview_box"
+        return "Daftar Tabel: fakta_throughput, fakta_komersial_dashboard, fakta_market_share, fakta_realisasi_uc, fakta_rest_n_disc, fakta_vessel, fakta_vessel_service, fakta_transhipment, fakta_overview_box, dim_vessel_operator"
 
 def get_valid_tables() -> set:
     try:
@@ -81,13 +82,11 @@ Tugas Anda: Memilih nama tabel DuckDB yang RELEVAN untuk menjawab pertanyaan pen
 Katalog Tabel Tersedia:
 {catalog}
 
-Riwayat Obrolan Terdekat:
-{history}
-
-ATURAN PENTING:
+{history}ATURAN PENTING:
 1. KONTEKS PERTANYAAN LANJUTAN: Jika pertanyaan pengguna singkat atau merujuk pada obrolan sebelumnya (contoh: "sekarang coba yang 2027", "bagaimana dengan 2023?", "siapa nomor 1 nya?"), WAJIB LIHAT RIWAYAT OBROLAN dan PILIH TABEL YANG SAMA dengan pertanyaan sebelumnya!
-2. Kembalikan HANYA nama tabel relevan dipisahkan koma. Contoh: fakta_throughput, fakta_overview_box
-3. DILARANG mengembalikan seluruh tabel kecuali pengguna meminta overview seluruh database."""
+2. DAFTAR MASTER OPERATOR: Jika pengguna menanyakan daftar nama operator kapal/pelayaran (vessel operator) apa saja yang ada atau pernah sandar di TPS (tanpa metrik pendapatan/keuangan), PILIH tabel `dim_vessel_operator`!
+3. Kembalikan HANYA nama tabel relevan dipisahkan koma. Contoh: fakta_throughput, fakta_overview_box
+4. DILARANG mengembalikan seluruh tabel kecuali pengguna meminta overview seluruh database."""
 
 def router_node(state: AgentState) -> dict:
     user_query = state.get("user_query", "")
@@ -103,11 +102,11 @@ def router_node(state: AgentState) -> dict:
         turns = []
         for m in recent:
             if m.get("role") == "user":
-                turns.append(f"User: {m.get('content', '')}")
+                turns.append(f"- User: {m.get('content', '')}")
             elif m.get("role") == "assistant" and m.get("sql"):
-                turns.append(f"AI SQL: {m.get('sql')}")
+                turns.append(f"- AI SQL: {m.get('sql')}")
         if turns:
-            history_context = "\n".join(turns)
+            history_context = "Riwayat Obrolan Terdekat:\n" + "\n".join(turns) + "\n\n"
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", ROUTER_SYSTEM_PROMPT),
@@ -138,18 +137,15 @@ def router_node(state: AgentState) -> dict:
         valid_set = get_valid_tables()
         filtered_tables = [t for t in table_names if t in valid_set] if valid_set else table_names
         
-        allowed_tables = semantic_cache.get_role_permissions(user_role)
-        rbac_filtered_tables = [t for t in filtered_tables if t in allowed_tables]
-        
-        # Smart Fallback: Jangan memilih SELURUH tabel database jika AI ragu!
-        if not rbac_filtered_tables:
-            default_smart_tables = ["fakta_throughput", "data_komersial", "trend_komersial"]
-            rbac_filtered_tables = [t for t in default_smart_tables if t in allowed_tables]
-            if not rbac_filtered_tables:
-                rbac_filtered_tables = list(allowed_tables)[:2]
+        # Smart Fallback jika router tidak mendeteksi tabel valid
+        if not filtered_tables:
+            default_smart_tables = ["fakta_throughput", "fakta_komersial_dashboard"]
+            filtered_tables = [t for t in default_smart_tables if t in valid_set]
+            if not filtered_tables and valid_set:
+                filtered_tables = list(valid_set)[:2]
             
-        log_step("STEP 1: ROUTER_DONE", f"Tabel terpilih pasca RBAC Filter: {rbac_filtered_tables}")
-        return {"relevant_tables": rbac_filtered_tables}
+        log_step("STEP 1: ROUTER_DONE", f"Tabel terpilih: {filtered_tables}")
+        return {"relevant_tables": filtered_tables}
     except Exception as e:
         log_error("STEP 1: ROUTER_FAIL", e)
         raise e

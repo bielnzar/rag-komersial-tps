@@ -6,10 +6,10 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-def format_data_compact(query_result: list, max_rows: int = 50) -> str:
+def format_data_compact(query_result: list, max_rows: int = 15) -> str:
     """
-    Mengonversi list of dicts data mentah menjadi format CSV Compact.
-    Menghemat hingga 50% token payload dibanding JSON verbose.
+    Mengonversi list of dicts data mentah menjadi format CSV Compact dengan Row Sampling cerdas.
+    Menghemat hingga 80% token payload dibanding JSON verbose.
     """
     if not query_result or not isinstance(query_result, list) or len(query_result) == 0:
         return "Tidak ada data"
@@ -58,7 +58,7 @@ def generate_chart_config(user_query: str, query_result: list) -> dict:
     if not query_result or not isinstance(query_result, list) or len(query_result) == 0:
         return {}
 
-    data_str = format_data_compact(query_result, max_rows=50)
+    data_str = format_data_compact(query_result, max_rows=15)
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", CHART_SYSTEM_PROMPT),

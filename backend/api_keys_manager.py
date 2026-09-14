@@ -77,32 +77,51 @@ def get_step_models() -> dict:
         }
     return models
 
+def get_candidate_keys_for_step(step_name: str, provider: str) -> list[str]:
+    """
+    Mengambil DAFTAR kunci kandidat yang siap pakai untuk STEP tertentu.
+    Termasuk active keys, backup inactive keys, global pool, dan OS ENV.
+    Kunci yang sedang dalam masa cooldown dilewati secara otomatis.
+    """
+    configs = get_step_configs()
+    step_cfg = configs.get(step_name, {})
+    step_keys = step_cfg.get("api_keys", [])
+    now = time.time()
+    
+    candidates = []
+    
+    # 1. Kunci aktif step (prioritas utama)
+    for k in step_keys:
+        if k.get("status") == "active" and k.get("key"):
+            if k.get("cooldown_until", 0) < now:
+                candidates.append(k.get("key"))
+                
+    # 2. Kunci cadangan step (inactive tapi tidak cooldown)
+    for k in step_keys:
+        if k.get("status") != "active" and k.get("key"):
+            if k.get("cooldown_until", 0) < now and k.get("key") not in candidates:
+                candidates.append(k.get("key"))
+                
+    # 3. Kunci global pool
+    global_keys = get_all_keys().get(provider, [])
+    for k in global_keys:
+        if k.get("key") and k.get("cooldown_until", 0) < now and k.get("key") not in candidates:
+            candidates.append(k.get("key"))
+            
+    # 4. OS ENV fallback
+    env_key = os.getenv("GOOGLE_API_KEY") if provider in ["google", "google_gemini"] else os.getenv("GROQ_API_KEY")
+    if env_key and env_key not in candidates:
+        candidates.append(env_key)
+        
+    return candidates
+
 def get_active_key_for_step(step_name: str, provider: str) -> str:
     """
     Mengambil API Key aktif khusus untuk STEP tertentu.
     Jika step tersebut belum memiliki kunci aktif, otomatis fallback ke Kunci Pool Utama provider, lalu OS ENV.
     """
-    configs = get_step_configs()
-    step_cfg = configs.get(step_name, {})
-    step_keys = step_cfg.get("api_keys", [])
-    
-    # 1. Cek Kunci Aktif Khusus Step ini
-    for k in step_keys:
-        if k.get("status") == "active" and k.get("key"):
-            return k.get("key")
-            
-    # 2. Fallback ke Pool Kunci Global Provider
-    pool_key = get_active_key(provider)
-    if pool_key:
-        return pool_key
-        
-    # 3. Fallback ke OS ENV
-    if provider in ["google", "google_gemini"]:
-        return os.getenv("GOOGLE_API_KEY")
-    elif provider == "groq":
-        return os.getenv("GROQ_API_KEY")
-        
-    return None
+    candidates = get_candidate_keys_for_step(step_name, provider)
+    return candidates[0] if candidates else None
 
 def record_key_usage_for_step(step_name: str, provider: str, key_val: str):
     """Mencatat jumlah penggunaan kunci di step dan di pool global."""
@@ -190,13 +209,24 @@ def mark_key_cooldown(provider: str, key_val: str, cooldown_seconds: int = 60):
     """Menandai kunci terkena 429 Limit dan masuk cooldown sementara."""
     if not key_val: return
     data = get_all_keys()
-    keys = data.get(provider, [])
     updated = False
+    
+    # 1. Update di step_configs
+    configs = data.get("step_configs", {})
+    for step_cfg in configs.values():
+        for k in step_cfg.get("api_keys", []):
+            if k.get("key") == key_val:
+                k["cooldown_until"] = time.time() + cooldown_seconds
+                updated = True
+                
+    # 2. Update di global pool
+    keys = data.get(provider, [])
     for k in keys:
         if k.get("key") == key_val:
             k["cooldown_until"] = time.time() + cooldown_seconds
             updated = True
-            logger.warning(f"⏳ API Key {provider} diset COOLDOWN selama {cooldown_seconds} detik.")
             break
+            
     if updated:
         save_all_keys(data)
+        logger.warning(f"⏳ API Key diset COOLDOWN selama {cooldown_seconds} detik (Key: ...{key_val[-6:] if len(key_val)>6 else ''}).")

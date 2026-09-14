@@ -1,35 +1,102 @@
 <template>
   <div class="my-6">
-    <div class="flex items-center justify-between mb-3 px-1">
-      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-        <Sparkles class="w-3.5 h-3.5 text-teal-400" />
-        Rekomendasi Pertanyaan Analisis Komersial
-      </p>
-      <span class="text-[11px] text-slate-500 font-medium">Klik untuk mencoba</span>
+    <!-- Header Rekomendasi Pertanyaan Multi-Kategori -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3.5 px-1">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
+          <Sparkles class="w-4 h-4" />
+        </div>
+        <div>
+          <h3 class="text-xs sm:text-sm font-bold text-slate-200 tracking-wide flex items-center gap-2">
+            Rekomendasi Analisis Komersial
+            <span class="text-[10px] font-semibold text-teal-400 bg-teal-950/80 px-2 py-0.5 rounded-full border border-teal-800/50">
+              9 Domain Siap Pakai
+            </span>
+          </h3>
+        </div>
+      </div>
+      <span class="text-[11px] text-slate-400 font-medium hidden sm:inline">
+        Pilih kategori domain untuk menjelajahi kueri analitik
+      </span>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <!-- Category Tabs Navigation -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
       <button
-        v-for="(item, idx) in suggestions"
+        v-for="cat in categories"
+        :key="cat.id"
+        type="button"
+        @click="activeCategory = cat.id"
+        :class="[
+          'flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-left transition-all duration-200',
+          activeCategory === cat.id
+            ? 'bg-slate-800/90 border-teal-500/60 shadow-md shadow-teal-950/30 text-teal-300 ring-1 ring-teal-500/30'
+            : 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-900/90 hover:border-slate-700'
+        ]"
+      >
+        <div class="flex items-center gap-2.5 min-w-0">
+          <component :is="cat.icon" class="w-4 h-4 shrink-0" :class="activeCategory === cat.id ? 'text-teal-400' : 'text-slate-500'" />
+          <span class="text-xs font-semibold truncate">{{ cat.name }}</span>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0 ml-2">
+          <span
+            v-if="activeCategory === cat.id"
+            class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"
+          ></span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded font-mono font-medium"
+            :class="activeCategory === cat.id ? 'bg-teal-950/90 text-teal-300 border border-teal-800/50' : 'bg-slate-800/80 text-slate-500'"
+          >
+            {{ cat.items.length }}
+          </span>
+        </div>
+      </button>
+    </div>
+
+    <!-- Current Category Context Banner -->
+    <div class="mb-3 px-3 py-1.5 rounded-lg bg-slate-900/40 border border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
+      <div class="flex items-center gap-2 truncate">
+        <span class="font-semibold text-slate-300">Cakupan Domain:</span>
+        <span class="truncate text-slate-400">{{ currentCategory.description }}</span>
+      </div>
+      <span class="text-[10px] text-slate-500 font-mono shrink-0 ml-2">DuckDB Verified</span>
+    </div>
+
+    <!-- Interactive Query Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <button
+        v-for="(item, idx) in currentCategory.items"
         :key="idx"
-        @click="$emit('select-prompt', item.query)"
-        class="card-interactive text-left p-4 rounded-2xl group flex flex-col justify-between min-h-[140px] border border-slate-800/80 hover:border-teal-500/50 bg-slate-900/60 hover:bg-slate-900/90 transition-all shadow-md"
+        type="button"
+        @click="triggerPrompt(item.query)"
+        class="card-interactive text-left p-4 rounded-2xl group flex flex-col justify-between min-h-[155px] border border-slate-800/80 hover:border-teal-500/50 bg-slate-900/60 hover:bg-slate-900/95 transition-all duration-200 shadow-md hover:shadow-teal-950/20"
       >
         <div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-[10px] font-bold text-teal-300 bg-teal-950/80 px-2 py-0.5 rounded-md border border-teal-800/50 uppercase tracking-wider">
+          <!-- Tag & Table Badges -->
+          <div class="flex items-center justify-between gap-1 mb-2.5">
+            <span class="text-[10px] font-bold text-teal-300 bg-teal-950/80 px-2 py-0.5 rounded-md border border-teal-800/50 uppercase tracking-wider truncate">
               {{ item.tag }}
             </span>
-            <span class="text-[10px] text-slate-500 font-mono">{{ item.tables }}</span>
+            <span class="text-[10px] text-slate-500 font-mono shrink-0">{{ item.tables }}</span>
           </div>
-          <p class="text-xs text-slate-200 group-hover:text-white font-medium leading-relaxed">
+
+          <!-- Query Prompt -->
+          <p class="text-xs text-slate-200 group-hover:text-white font-medium leading-relaxed mb-2">
             "{{ item.query }}"
           </p>
+
+          <!-- Metric Focus Pill -->
+          <div class="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+            <span class="text-teal-400">⚡</span>
+            <span>{{ item.metric }}</span>
+          </div>
         </div>
         
-        <div class="flex items-center text-[11px] text-slate-400 mt-3 font-semibold group-hover:text-teal-300 transition-colors">
-          <span>Jalankan Analisis</span>
-          <ArrowRight class="w-3.5 h-3.5 ml-auto transition-transform group-hover:translate-x-1 text-teal-400" />
+        <!-- Action Footer -->
+        <div class="flex items-center justify-between text-[11px] text-slate-400 mt-3.5 pt-2.5 border-t border-slate-800/60 group-hover:border-slate-800 transition-colors">
+          <span class="font-semibold text-slate-400 group-hover:text-teal-300 transition-colors">Jalankan Analisis</span>
+          <div class="w-5 h-5 rounded-full bg-slate-800/80 group-hover:bg-teal-500/20 flex items-center justify-center transition-colors">
+            <ArrowRight class="w-3 h-3 transition-transform group-hover:translate-x-0.5 text-slate-400 group-hover:text-teal-300" />
+          </div>
         </div>
       </button>
     </div>
@@ -37,25 +104,100 @@
 </template>
 
 <script setup>
-import { Sparkles, ArrowRight } from './Icons.js'
+import { ref, computed } from 'vue'
+import { Sparkles, ArrowRight, BarChart3, DollarSign, Ship } from './Icons.js'
 
-defineEmits(['select-prompt'])
+const emit = defineEmits(['select-prompt', 'run-prompt'])
 
-const suggestions = [
+const activeCategory = ref('operasional')
+
+const categories = [
   {
-    tag: 'Throughput Container',
-    query: 'Berapa total actual throughput container domestik pada tahun 2022?',
-    tables: 'fakta_throughput'
+    id: 'operasional',
+    name: 'Operasional & Throughput',
+    icon: BarChart3,
+    description: 'Arus petikemas (Box/TEUs), kargo uncontainerized, & perbandingan RKAP',
+    items: [
+      {
+        tag: 'Throughput Petikemas',
+        query: 'Berapa total actual throughput container internasional dan domestik pada tahun 2024?',
+        tables: 'fakta_throughput',
+        metric: 'Satuan: TEUs & Box (Internasional & Domestik)'
+      },
+      {
+        tag: 'Kargo Uncontainerized',
+        query: 'Berapa total kegiatan uncontainerized (UC) tahun 2024?',
+        tables: 'fakta_realisasi_uc',
+        metric: 'Kegiatan Uncontainerized (Tonase & CBM)'
+      },
+      {
+        tag: 'Rasio TEUs vs Box',
+        query: 'Berapa perbandingan TEUs domestik dan internasional tahun 2024?',
+        tables: 'fakta_overview_box',
+        metric: 'Perbandingan Volume & Evaluasi RKAP'
+      }
+    ]
   },
   {
-    tag: 'Operasional Kapal',
-    query: 'Tampilkan 3 Line Operator (LOP) dengan total TEUs terbanyak pada operasional kapal domestik',
-    tables: 'fakta_vessel'
+    id: 'finansial',
+    name: 'Finansial & Tarif',
+    icon: DollarSign,
+    description: 'Pendapatan operasional komersial, ranking revenue operator, & keringanan biaya',
+    items: [
+      {
+        tag: 'Total Revenue',
+        query: 'Berapa total pendapatan komersial tahun 2023?',
+        tables: 'fakta_komersial_dashboard',
+        metric: 'Total Pendapatan (Miliar Rupiah)'
+      },
+      {
+        tag: 'Top 5 Operator',
+        query: 'Siapa 5 operator dengan revenue terbesar tahun 2024?',
+        tables: 'fakta_komersial_dashboard',
+        metric: 'Ranking Pendapatan Line Operator (LOP)'
+      },
+      {
+        tag: 'Diskon & Restitusi',
+        query: 'Tampilkan daftar permohonan diskon dan restitusi yang diajukan pelanggan',
+        tables: 'fakta_rest_n_disc',
+        metric: 'Status Pengajuan Keringanan Biaya'
+      }
+    ]
   },
   {
-    tag: 'Market Share SL INT',
-    query: 'Sebutkan 3 Line Operator (LOP) dengan total TEUs terbesar pada data market share sheet SL INT',
-    tables: 'fakta_market_share'
+    id: 'pasar_rute',
+    name: 'Pasar & Rute Pelayaran',
+    icon: Ship,
+    description: 'Market share liner pelayaran, kunjungan call rute kapal, & volume transhipment',
+    items: [
+      {
+        tag: 'Market Share Liner',
+        query: 'Siapa 3 operator dengan volume market share terbesar tahun 2023?',
+        tables: 'fakta_market_share',
+        metric: 'Pangsa Pasar Volume TEUs Internasional'
+      },
+      {
+        tag: 'Rute & Call Kapal',
+        query: 'Tampilkan rute dan total call kapal per operator tahun 2024',
+        tables: 'fakta_vessel_service',
+        metric: 'Frekuensi Kunjungan Rute Pelayaran'
+      },
+      {
+        tag: 'Transhipment Hub',
+        query: 'Berapa total revenue transhipment per operator tahun 2024?',
+        tables: 'fakta_transhipment',
+        metric: 'Pendapatan Vessel & Yard Transhipment'
+      }
+    ]
   }
 ]
+
+const currentCategory = computed(() => {
+  return categories.find(c => c.id === activeCategory.value) || categories[0]
+})
+
+const triggerPrompt = (queryText) => {
+  emit('select-prompt', queryText)
+  emit('run-prompt', queryText)
+}
 </script>

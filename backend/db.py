@@ -56,10 +56,50 @@ class DuckDBPool:
                         status VARCHAR
                     )
                 """)
+
+                # Inisialisasi tabel log_user_feedback jika belum ada (Tugas 2.3)
+                cls._telemetry_instance.execute("""
+                    CREATE TABLE IF NOT EXISTS log_user_feedback (
+                        id VARCHAR PRIMARY KEY,
+                        timestamp TIMESTAMP DEFAULT current_timestamp,
+                        session_id VARCHAR,
+                        user_id VARCHAR,
+                        query VARCHAR,
+                        sql_executed VARCHAR,
+                        rating VARCHAR,
+                        feedback_note VARCHAR
+                    )
+                """)
                 logger.info(f"📊 [DuckDBPool] Telemetry DB Siap di {TELEMETRY_DB_PATH}")
             except Exception as e:
-                logger.error(f"❌ [DuckDBPool] Gagal inisialisasi Telemetry DB: {e}")
-                return duckdb.connect(TELEMETRY_DB_PATH, read_only=False)
+                logger.warning(f"⚠️ [DuckDBPool] Telemetry DB lock terdeteksi ({e}). Menggunakan In-Memory Fallback.")
+                cls._telemetry_instance = duckdb.connect(':memory:')
+                cls._telemetry_instance.execute("""
+                    CREATE TABLE IF NOT EXISTS log_audit_token (
+                        id VARCHAR PRIMARY KEY,
+                        timestamp TIMESTAMP,
+                        agent_name VARCHAR,
+                        provider VARCHAR,
+                        model_name VARCHAR,
+                        input_tokens INTEGER,
+                        output_tokens INTEGER,
+                        total_tokens INTEGER,
+                        latency_ms DOUBLE,
+                        status VARCHAR
+                    )
+                """)
+                cls._telemetry_instance.execute("""
+                    CREATE TABLE IF NOT EXISTS log_user_feedback (
+                        id VARCHAR PRIMARY KEY,
+                        timestamp TIMESTAMP DEFAULT current_timestamp,
+                        session_id VARCHAR,
+                        user_id VARCHAR,
+                        query VARCHAR,
+                        sql_executed VARCHAR,
+                        rating VARCHAR,
+                        feedback_note VARCHAR
+                    )
+                """)
         return cls._telemetry_instance
 
     @classmethod

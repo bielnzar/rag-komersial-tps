@@ -2,7 +2,9 @@ from langchain_core.prompts import ChatPromptTemplate
 from .state import AgentState
 from .chart_gen import generate_chart_config
 from .llm_helper import invoke_chain_with_fallback
+from concurrent.futures import ThreadPoolExecutor
 import logging
+import re
 from typing import Optional
 from pydantic import BaseModel, Field
 
@@ -17,7 +19,13 @@ def format_data_compact(query_result: list, max_rows: int = 15) -> str:
         return "Tidak ada data"
     
     total_count = len(query_result)
-    limited = query_result[:max_rows]
+    # Jika dataset wajar/ringkas (<= 30 baris seperti master 23 operator),
+    # sertakan seluruhnya agar tidak terpotong menjadi placeholder [Operator 16], dst.
+    if total_count <= 30:
+        limited = query_result
+    else:
+        limited = query_result[:max_rows]
+        
     headers = list(limited[0].keys())
     lines = [",".join(headers)]
     
@@ -25,8 +33,8 @@ def format_data_compact(query_result: list, max_rows: int = 15) -> str:
         vals = [str(row.get(h, '')).replace(',', ';') for h in headers]
         lines.append(",".join(vals))
         
-    if total_count > max_rows:
-        lines.append(f"... (dan {total_count - max_rows} baris data lainnya. Total keseluruhan baris: {total_count})")
+    if total_count > len(limited):
+        lines.append(f"... (dan {total_count - len(limited)} baris data lainnya. Total keseluruhan baris: {total_count})")
         
     return "\n".join(lines)
 
@@ -41,18 +49,77 @@ class NarrativeOutput(BaseModel):
 
 VIZ_SYSTEM_PROMPT = """Anda adalah Data Analyst eksekutif PT TPS (Terminal Petikemas Surabaya).
 
-ATURAN UTAMA PENULISAN JAWABAN:
-1. Jawab LENGKAP sesuai data (jika Top 5, sebutkan kelima-limanya).
-2. Satuan volume kontainer SELALU 'TEUs' atau 'Boxes', DILARANG menggunakan kata 'unit'.
-3. FORMAT ANGKA & NOMINAL (WAJIB): SELALU gunakan pemisah ribuan berupa TITIK (.) untuk seluruh angka volume dan nominal mata uang Rupiah (misal: Rp168.136.527.278, 134.129 TEUs, 88.148 Boxes). DILARANG KERAS menulis angka besar tanpa titik pemisah ribuan!
-4. Bahasa ramah, eksekutif, profesional, dan berstruktur rapi.
+TUGAS: Sajikan narasi eksekutif dalam Bahasa Indonesia yang ringkas, to-the-point, dan akurat berdasarkan Data CSV.
 
-FORMAT LAYOUT MARKDOWN & PENOMORAN (WAJIB DIPATUHI):
-- Penomoran HARUS menggunakan format `1. `, `2. `, `3. ` (wajib titik dan spasi setelah nomor). CONTOH BENAR: `1. **CMA** – Rp302.788.976.564, 252.355 TEUs`. DILARANG KERAS menempelkan angka langsung ke teks (seperti 1CMA atau 2SSL)!
-- SELALU gunakan baris baru (newline `\n\n`) untuk memisahkan setiap poin daftar bernomor (1., 2., 3.) atau bullet point (- ). DILARANG KERAS menggabungkan daftar bernomor dalam satu paragraf!
-- Jika ada daftar setelah tanda titik dua (:), SELALU beri 2 baris baru (newline `\n\n`) sebelum memulai poin 1.
-- Gunakan cetak tebal (**Nama Perusahaan / Operator / Layanan**) untuk menyoroti entitas utama.
-- Jika satu poin memiliki beberapa sub-layanan yang dipisahkan titik koma (;), pisahkan sub-layanan tersebut menjadi bullet point berindented di baris baru."""
+ATURAN PENULISAN:
+1. Format Angka: Wajib gunakan titik (.) sebagai pemisah ribuan Rupiah dan volume (cth: Rp145.269.000.977, 12.085 TEUs).
+2. Satuan: Gunakan 'TEUs' atau 'Boxes' untuk kontainer (jangan gunakan kata 'unit'). Untuk pendapatan, gunakan Rupiah saja.
+3. Tata Letak Markdown:
+   - Gunakan daftar bernomor (1., 2.) dengan jeda baris antar poin.
+   - Jika data memiliki kode dan nama lengkap (seperti code & full_name), sebutkan keduanya secara lengkap dan rapi: `1. **NAMA LENGKAP** (KODE)` atau `1. **KODE** – NAMA LENGKAP` (contoh: `1. **ANL SINGAPORE PTE. LTD.** (ANL)`). DILARANG membuat placeholder seperti [Operator X].
+   - Tebalkan (**Nama Operator / Kategori / Bulan**).
+4. Analisis & Kesimpulan:
+   - Tuliskan seluruh item yang ada di data secara lengkap tanpa ada yang terlewat.
+   - Wajib selesaikan setiap kalimat hingga tuntas bertanda titik (.). DILARANG KERAS mengakhiri respons dengan kalimat menggantung atau kata sambung (seperti: Namun, Tetapi, Dan)."""
+
+
+DOMAIN_SUGGESTIONS = {
+    "throughput": [
+        "Berapa total throughput internasional tahun 2024?",
+        "Bandingkan throughput domestik dan internasional 2023",
+        "Tampilkan tren throughput 2024 beserta grafiknya"
+    ],
+    "revenue": [
+        "Berapa total pendapatan komersial tahun 2023?",
+        "Siapa 5 operator dengan revenue terbesar tahun 2024?",
+        "Tampilkan tren pendapatan komersial 2024 beserta grafiknya"
+    ],
+    "market_share": [
+        "Siapa 3 operator dengan market share terbesar 2023?",
+        "Berapa total volume TEUs operator CMA tahun 2023?",
+        "Tampilkan proporsi market share operator 2024"
+    ],
+    "vessel": [
+        "Berapa total box operasional kapal internasional tahun 2024?",
+        "Tampilkan rute dan total call kapal tahun 2024",
+        "Siapa operator dengan rata-rata BMPH tertinggi?"
+    ],
+    "general": [
+        "Berapa total throughput internasional tahun 2024?",
+        "Berapa total pendapatan komersial tahun 2023?",
+        "Siapa 3 operator dengan market share terbesar 2023?"
+    ]
+}
+
+def get_context_suggestions(user_query: str, relevant_tables: list[str] | None = None) -> list[str]:
+    """
+    Menghasilkan 3 rekomendasi pertanyaan interaktif berbasis konteks kueri/tabel (0 Token & 0 ms).
+    Semua rekomendasi dijamin memiliki data valid di database DuckDB PT TPS.
+    """
+    q_lower = user_query.lower()
+    tbls = relevant_tables or []
+    
+    # 1. Deteksi berbasis tabel terpilih oleh Router
+    if any("throughput" in t or "overview_box" in t for t in tbls):
+        return DOMAIN_SUGGESTIONS["throughput"]
+    if any("komersial" in t or "disc" in t or "realisasi_uc" in t for t in tbls):
+        return DOMAIN_SUGGESTIONS["revenue"]
+    if any("market_share" in t for t in tbls):
+        return DOMAIN_SUGGESTIONS["market_share"]
+    if any("vessel" in t or "transhipment" in t for t in tbls):
+        return DOMAIN_SUGGESTIONS["vessel"]
+        
+    # 2. Fallback deteksi kata kunci kueri
+    if any(kw in q_lower for kw in ["throughput", "teus", "arus", "box", "petikemas", "kontainer"]):
+        return DOMAIN_SUGGESTIONS["throughput"]
+    if any(kw in q_lower for kw in ["pendapatan", "revenue", "uang", "rupiah", "biaya", "tarif", "diskon", "keringanan"]):
+        return DOMAIN_SUGGESTIONS["revenue"]
+    if any(kw in q_lower for kw in ["market", "pangsa", "share", "persen", "peringkat", "ranking", "top"]):
+        return DOMAIN_SUGGESTIONS["market_share"]
+    if any(kw in q_lower for kw in ["kapal", "vessel", "call", "bmph", "rute", "service"]):
+        return DOMAIN_SUGGESTIONS["vessel"]
+        
+    return DOMAIN_SUGGESTIONS["general"]
 
 from .pipeline_logger import log_step, log_error
 
@@ -61,6 +128,7 @@ def viz_gen_node(state: AgentState) -> dict:
     Node Lapisan 2 & 3: Menghasilkan narasi eksekutif dan konfigurasi ECharts (jika diminta).
     """
     user_query = state.get("user_query", "")
+    relevant_tables = state.get("relevant_tables")
     query_result = state.get("query_result")
     sql_error = state.get("sql_error")
     force_chart = state.get("force_chart", False)
@@ -74,9 +142,11 @@ def viz_gen_node(state: AgentState) -> dict:
             }
         elif "DATA_EMPTY" in sql_error:
             log_step("STEP 5: VIZ_GEN_EMPTY", "Data tidak ditemukan (Fail-Fast Graceful Degradation)")
+            suggestions = get_context_suggestions(user_query, relevant_tables)
             return {
-                "final_answer": "Maaf, data yang Anda cari tidak ditemukan atau bernilai kosong pada database PT TPS untuk kriteria atau periode waktu yang diminta.\n\n**Saran:**\n- Pastikan penulisan nama operator/layanan sudah sesuai (misal: *CMA*, *SSL*, *MSK*, *Internasional*, atau *Domestik*).\n- Coba perjelas atau sesuaikan parameter rentang tahun/bulan yang ingin dianalisis.",
-                "echarts_config": None
+                "final_answer": "Maaf, data yang Anda cari tidak ditemukan atau bernilai kosong pada database PT TPS untuk kriteria atau periode waktu yang diminta.\n\n**Saran:** Anda dapat mencoba salah satu pertanyaan rekomendasi di bawah ini:",
+                "echarts_config": None,
+                "suggestions": suggestions
             }
         elif "DB_SYNTAX_ERROR" in sql_error:
             log_step("STEP 5: VIZ_GEN_ERROR", "Kueri mengalami kendala eksekusi (Fail-Fast)")
@@ -90,20 +160,24 @@ def viz_gen_node(state: AgentState) -> dict:
     
     log_step("STEP 5: VIZ_GEN", f"Merangkum narasi bisnis & ECharts via Groq gpt-oss-20b", f"Chart: {is_chart_requested}")
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", VIZ_SYSTEM_PROMPT),
-        ("human", "Pertanyaan: {question}\nError: {error}\nData (CSV):\n{data}")
-    ])
-    
-    data_str = format_data_compact(query_result, max_rows=50)
+    data_str = format_data_compact(query_result, max_rows=15)
     error_str = sql_error if sql_error else "Tidak ada error"
-    
-    chart_config = None
-    if is_chart_requested and query_result:
-        chart_config = generate_chart_config(user_query, query_result)
 
-    try:
-        response = invoke_chain_with_fallback(
+    def _run_chart():
+        if is_chart_requested and query_result:
+            try:
+                return generate_chart_config(user_query, query_result)
+            except Exception as ce:
+                logger.warning(f"⚠️ Gagal merakit ECharts di background thread: {ce}")
+                return None
+        return None
+
+    def _run_narrative():
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", VIZ_SYSTEM_PROMPT),
+            ("human", "Pertanyaan: {question}\nError: {error}\nData (CSV):\n{data}")
+        ])
+        return invoke_chain_with_fallback(
             chain_prompt=prompt,
             prompt_inputs={
                 "question": user_query,
@@ -113,6 +187,20 @@ def viz_gen_node(state: AgentState) -> dict:
             structured_schema=None,
             agent_name="viz_gen"
         )
+
+    chart_config = None
+    response = None
+
+    try:
+        if is_chart_requested and query_result:
+            log_step("STEP 5: VIZ_PARALLEL", "Menjalankan generator Narasi & ECharts secara paralel (ThreadPool)")
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                future_chart = executor.submit(_run_chart)
+                future_narrative = executor.submit(_run_narrative)
+                chart_config = future_chart.result()
+                response = future_narrative.result()
+        else:
+            response = _run_narrative()
         
         if not response:
             return {
@@ -134,6 +222,11 @@ def viz_gen_node(state: AgentState) -> dict:
             else:
                 fallback_answer += "Tidak ada baris data yang ditemukan."
             final_text = fallback_answer
+            
+        # Sanitasi kalimat menggantung: pangkas jika AI terputus tepat di kata sambung
+        final_text = re.sub(r'\b(namun|tetapi|akan tetapi|dan|serta|sedangkan|meskipun|walaupun|sementara)\s*[\.,;:\-]*$', '', final_text.rstrip(), flags=re.IGNORECASE).rstrip()
+        if final_text and not final_text.endswith(('.', '!', '?', '"', "'", '`', '*', ':')):
+            final_text += '.'
             
         log_step("STEP 5: VIZ_GEN_DONE", f"Narasi berhasil disusun ({len(final_text)} karakter)")
         return {

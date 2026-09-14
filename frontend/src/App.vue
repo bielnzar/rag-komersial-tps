@@ -20,7 +20,7 @@
 
   <!-- Full-Page Hidden Admin Route (/administrator) -->
   <div v-else-if="isAdminRoute" class="min-h-screen bg-slate-950">
-    <LoginModal v-if="!isLoggedIn" :is-admin-mode="true" @login-success="handleLoginSuccess" />
+    <LoginModal v-if="!isLoggedIn" @login-success="handleLoginSuccess" />
     <AdminDashboard v-else />
   </div>
 
@@ -81,7 +81,10 @@
           </p>
 
           <!-- Prompt Suggestions Grid -->
-          <PromptSuggestions @select-prompt="handleSelectPrompt" />
+          <PromptSuggestions 
+            @select-prompt="handleSelectPrompt" 
+            @run-prompt="handleRunPrompt"
+          />
         </div>
 
         <!-- Messages History List -->
@@ -90,6 +93,7 @@
             v-for="(msg, idx) in messages"
             :key="idx"
             :message="msg"
+            @select-suggestion="handleSendQuery"
           />
           <div ref="scrollAnchor"></div>
         </div>
@@ -140,19 +144,46 @@ const scrollAnchor = ref(null)
 const logoUrl = ref('/assets/tps-logo.png')
 const hasHeroLogoError = ref(false)
 
+const checkSessionExpiry = () => {
+  const loginDate = localStorage.getItem('tps_login_date')
+  const loginTime = localStorage.getItem('tps_login_time')
+  const todayStr = new Date().toISOString().split('T')[0]
+
+  // Batasi sesi: harus hari ini & tidak lebih dari 8 jam (28800000 ms)
+  if (!loginDate || loginDate !== todayStr) {
+    return false
+  }
+  if (!loginTime || (Date.now() - parseInt(loginTime, 10)) > 8 * 3600 * 1000) {
+    return false
+  }
+  return true
+}
+
 onMounted(async () => {
+  const hasToken = localStorage.getItem('tps_token') || localStorage.getItem('tps_admin_token')
+  
+  if (hasToken && !checkSessionExpiry()) {
+    // Sesi login kemarin atau sudah melewati 8 jam
+    handleLogout(false)
+    return
+  }
+
   if (isAdminRoute.value) {
     const adminToken = localStorage.getItem('tps_admin_token')
     const adminUser = localStorage.getItem('tps_admin_user')
 
     if (adminToken && adminUser) {
       try {
-        currentUser.value = JSON.parse(adminUser)
+        const parsed = JSON.parse(adminUser)
+        if (parsed.role !== 'admin') {
+          alert('⛔ Akses Ditolak: Halaman Administrator hanya dapat diakses oleh akun Admin.')
+          window.location.href = '/'
+          return
+        }
+        currentUser.value = parsed
         isLoggedIn.value = true
       } catch (e) {
-        localStorage.removeItem('tps_admin_token')
-        localStorage.removeItem('tps_admin_user')
-        isLoggedIn.value = false
+        handleLogout(false)
       }
     }
   } else {
@@ -165,7 +196,7 @@ onMounted(async () => {
         isLoggedIn.value = true
         await fetchUserSessions()
       } catch (e) {
-        handleLogout()
+        handleLogout(false)
       }
     }
   }
@@ -194,19 +225,21 @@ const handleLoginSuccess = async (userProfile) => {
   await fetchUserSessions()
 }
 
-const handleLogout = () => {
-  if (isAdminRoute.value) {
-    localStorage.removeItem('tps_admin_token')
-    localStorage.removeItem('tps_admin_user')
-  } else {
-    localStorage.removeItem('tps_token')
-    localStorage.removeItem('tps_user')
-  }
+const handleLogout = (redirect = true) => {
+  localStorage.removeItem('tps_token')
+  localStorage.removeItem('tps_user')
+  localStorage.removeItem('tps_admin_token')
+  localStorage.removeItem('tps_admin_user')
+  localStorage.removeItem('tps_login_date')
+  localStorage.removeItem('tps_login_time')
   currentUser.value = null
   isLoggedIn.value = false
   messages.value = []
   sessions.value = []
   activeSessionId.value = ''
+  if (redirect && isAdminRoute.value) {
+    window.location.href = '/'
+  }
 }
 
 const handleNewSession = () => {
@@ -266,6 +299,11 @@ const handleSelectPrompt = (promptText) => {
   selectedPrompt.value = promptText
 }
 
+const handleRunPrompt = (promptText) => {
+  handleSelectPrompt(promptText)
+  handleSendQuery(promptText)
+}
+
 const handleSendQuery = async (queryText) => {
   const userTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   const token = localStorage.getItem('tps_token')
@@ -317,6 +355,8 @@ const handleSendQuery = async (queryText) => {
         sql: data.sql_executed,
         data: data.data,
         chartConfig: data.chart_config,
+        suggestions: data.suggestions || null,
+        is_cached: data.is_cached || false,
         timestamp: botTimestamp
       })
     } else {
@@ -325,6 +365,7 @@ const handleSendQuery = async (queryText) => {
         userQuery: queryText,
         content: data.answer || 'Maaf, terjadi kesalahan saat memproses data.',
         error: data.error || 'Eksekusi query gagal.',
+        suggestions: data.suggestions || null,
         timestamp: botTimestamp
       })
     }

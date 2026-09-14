@@ -55,6 +55,16 @@
           </span>
         </div>
 
+        <!-- Admin Portal Link (Admin Only) -->
+        <a 
+          v-if="currentUser && currentUser.role === 'admin'"
+          href="/administrator"
+          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 border border-amber-800/60 text-xs font-semibold transition-colors whitespace-nowrap"
+          title="Masuk ke Portal Administrator"
+        >
+          <span>⚙️ Portal Admin</span>
+        </a>
+
 
         <!-- Reset Button -->
         <button 

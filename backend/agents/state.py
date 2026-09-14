@@ -16,3 +16,4 @@ class AgentState(TypedDict):
     force_chart: Optional[bool]      # Flag khusus jika user meminta grafik (On-Demand Chart)
     chat_history: Optional[List[dict]] # Riwayat percakapan sebelumnya dari Redis (Multi-Turn Memory)
     role: Optional[str]              # Peran pengguna untuk RBAC (executive, commercial, operation, guest)
+    suggestions: Optional[List[str]] # Rekomendasi kueri interaktif saat DATA_EMPTY (Tugas 2.4)
