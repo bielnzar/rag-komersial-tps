@@ -1,13 +1,13 @@
 <template>
-  <div class="sticky bottom-0 z-20 w-full p-4 sm:p-6 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent">
+  <div class="sticky bottom-0 z-20 w-full p-4 sm:p-6 bg-gradient-to-t from-[#080d1a] via-[#080d1a]/95 to-transparent">
     <div class="max-w-4xl mx-auto">
       <!-- Concise & Dynamic Loading Indicator Bar -->
-      <div v-if="isLoading" class="mb-3 px-3.5 py-2.5 rounded-xl card-executive border border-teal-500/30 flex items-center justify-between animate-fade-in-up">
-        <div class="flex items-center gap-2.5 text-xs font-medium text-teal-300">
-          <Loader2 class="w-3.5 h-3.5 animate-spin text-teal-400" />
+      <div v-if="isLoading" class="mb-3 px-3.5 py-2.5 rounded-xl bg-[#0e172a] border border-sky-500/30 flex items-center justify-between shadow-card animate-fade-in-up">
+        <div class="flex items-center gap-2.5 text-xs font-medium text-sky-300">
+          <Loader2 class="w-3.5 h-3.5 animate-spin text-sky-400" />
           <span class="transition-all duration-300">{{ currentLoadingMsg }}</span>
         </div>
-        <span class="text-[11px] text-slate-400 font-mono">Mohon tunggu sebentar...</span>
+        <span class="text-[11px] text-slate-400 font-mono">Memproses query...</span>
       </div>
 
       <!-- Main Command Palette Input Form -->
@@ -16,15 +16,15 @@
           v-model="inputQuery"
           type="text"
           :disabled="isLoading"
-          placeholder="Ketik pertanyaan analisis data komersial pelabuhan (cth: throughput domestik 2022)..."
-          class="w-full pl-4 pr-24 py-3.5 sm:py-4 rounded-xl card-executive text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500/60 focus:border-teal-500/60 shadow-xl transition-all disabled:opacity-50"
+          placeholder="Ketik pertanyaan analisis komersial pelabuhan (cth: total revenue 2024 atau throughput domestik)..."
+          class="w-full pl-4 pr-24 py-3.5 sm:py-4 rounded-xl bg-[#0e172a] border border-slate-700/80 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500/70 focus:ring-1 focus:ring-sky-500/30 shadow-card transition-colors disabled:opacity-50"
         />
 
         <div class="absolute right-2 flex items-center gap-1.5">
           <button
             type="submit"
             :disabled="isLoading || !inputQuery.trim()"
-            class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-slate-950 font-bold text-xs transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-md shadow-teal-500/20"
+            class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
           >
             <span>Kirim</span>
             <Send class="w-3.5 h-3.5" />
@@ -33,9 +33,9 @@
       </form>
 
       <!-- Footer Info -->
-      <div class="flex items-center justify-between text-[11px] text-slate-500 mt-2.5 px-1 font-medium">
+      <div class="flex items-center justify-between text-[11px] text-slate-500 mt-2 px-1 font-medium">
         <span>PT Terminal Petikemas Surabaya • Divisi Komersial</span>
-        <span class="hidden sm:inline">Press <kbd class="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-[10px] text-slate-400">Enter</kbd> to send</span>
+        <span class="hidden sm:inline">Tekan <kbd class="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-[10px] text-slate-400">Enter</kbd> untuk mengeksekusi</span>
       </div>
     </div>
   </div>

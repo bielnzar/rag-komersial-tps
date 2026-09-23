@@ -12,7 +12,7 @@
       <p class="text-xs text-slate-400 mb-6">
         Jalur lokasi URL yang Anda masukkan tidak valid atau tidak diizinkan oleh sistem PT TPS.
       </p>
-      <button @click="goHome" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-slate-950 font-bold text-sm shadow-lg shadow-teal-500/20 transition-all hover:scale-[1.02]">
+      <button @click="goHome" class="w-full py-3 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-medium text-sm shadow-card transition-colors">
         ← Kembali ke Halaman Utama
       </button>
     </div>
@@ -20,7 +20,7 @@
 
   <!-- Full-Page Hidden Admin Route (/administrator) -->
   <div v-else-if="isAdminRoute" class="min-h-screen bg-slate-950">
-    <LoginModal v-if="!isLoggedIn" :is-admin-mode="true" @login-success="handleLoginSuccess" />
+    <LoginModal v-if="!isLoggedIn" @login-success="handleLoginSuccess" />
     <AdminDashboard v-else />
   </div>
 
@@ -60,28 +60,43 @@
       <!-- Main Content Chat Area -->
       <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 flex flex-col justify-between">
         <!-- Empty Hero State when no messages -->
-        <div v-if="messages.length === 0" class="my-auto py-6 text-center animate-fade-in-up">
-          <!-- Hero Logo Container (Clean & Glowing) -->
-          <div class="inline-flex items-center justify-center p-3 sm:p-4 rounded-3xl bg-slate-900/80 border border-slate-700/50 mb-4 shadow-2xl backdrop-blur-md">
+        <div v-if="messages.length === 0" class="my-auto py-8 text-center animate-fade-in-up">
+          <!-- Corporate Emblem Container -->
+          <div class="inline-flex items-center justify-center p-3.5 sm:p-4 rounded-2xl bg-white/[0.04] border border-white/10 mb-4 shadow-card">
             <img 
               :src="logoUrl" 
               alt="Logo PT TPS" 
-              class="h-12 sm:h-16 w-auto object-contain filter drop-shadow-[0_0_12px_rgba(20,184,166,0.25)]"
+              class="h-12 sm:h-14 w-auto object-contain"
               @error="hasHeroLogoError = true"
               v-if="!hasHeroLogoError"
             />
-            <Ship v-else class="w-10 h-10 text-teal-400" />
+            <Ship v-else class="w-10 h-10 text-sky-400" />
           </div>
 
-          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-100 tracking-tight mb-2">
-            Selamat Datang di <span class="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 via-cyan-300 to-blue-400">TPS Executive Intelligence Agent</span>
+          <h2 class="text-2xl sm:text-3xl font-semibold text-white tracking-tight mb-2">
+            Pusat Analisis Data Komersial & Operasional
           </h2>
-          <p class="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto leading-relaxed mb-5 font-medium">
-            Sistem intelijen & analisis data operasional PT Terminal Petikemas Surabaya.
+          <p class="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto leading-relaxed mb-3.5 font-normal">
+            Platform analitik terpadu PT Terminal Petikemas Surabaya dengan integrasi Text-to-SQL deterministik ke basis data DuckDB.
           </p>
 
+          <!-- Quiet System Integrity Bar -->
+          <div class="inline-flex items-center gap-3 px-3 py-1 rounded-full bg-slate-900/80 border border-slate-800 text-[11px] text-slate-400 mb-6 font-mono">
+            <span class="flex items-center gap-1.5 text-slate-300">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              10 Tabel Gold
+            </span>
+            <span class="text-slate-700">•</span>
+            <span>32.264 Rekod Terverifikasi</span>
+            <span class="text-slate-700">•</span>
+            <span>Read-Only Connection</span>
+          </div>
+
           <!-- Prompt Suggestions Grid -->
-          <PromptSuggestions @select-prompt="handleSelectPrompt" />
+          <PromptSuggestions 
+            @select-prompt="handleSelectPrompt" 
+            @run-prompt="handleRunPrompt"
+          />
         </div>
 
         <!-- Messages History List -->
@@ -90,6 +105,7 @@
             v-for="(msg, idx) in messages"
             :key="idx"
             :message="msg"
+            @select-suggestion="handleSendQuery"
           />
           <div ref="scrollAnchor"></div>
         </div>
@@ -140,19 +156,46 @@ const scrollAnchor = ref(null)
 const logoUrl = ref('/assets/tps-logo.png')
 const hasHeroLogoError = ref(false)
 
+const checkSessionExpiry = () => {
+  const loginDate = localStorage.getItem('tps_login_date')
+  const loginTime = localStorage.getItem('tps_login_time')
+  const todayStr = new Date().toISOString().split('T')[0]
+
+  // Batasi sesi: harus hari ini & tidak lebih dari 8 jam (28800000 ms)
+  if (!loginDate || loginDate !== todayStr) {
+    return false
+  }
+  if (!loginTime || (Date.now() - parseInt(loginTime, 10)) > 8 * 3600 * 1000) {
+    return false
+  }
+  return true
+}
+
 onMounted(async () => {
+  const hasToken = localStorage.getItem('tps_token') || localStorage.getItem('tps_admin_token')
+  
+  if (hasToken && !checkSessionExpiry()) {
+    // Sesi login kemarin atau sudah melewati 8 jam
+    handleLogout(false)
+    return
+  }
+
   if (isAdminRoute.value) {
     const adminToken = localStorage.getItem('tps_admin_token')
     const adminUser = localStorage.getItem('tps_admin_user')
 
     if (adminToken && adminUser) {
       try {
-        currentUser.value = JSON.parse(adminUser)
+        const parsed = JSON.parse(adminUser)
+        if (parsed.role !== 'admin') {
+          alert('⛔ Akses Ditolak: Halaman Administrator hanya dapat diakses oleh akun Admin.')
+          window.location.href = '/'
+          return
+        }
+        currentUser.value = parsed
         isLoggedIn.value = true
       } catch (e) {
-        localStorage.removeItem('tps_admin_token')
-        localStorage.removeItem('tps_admin_user')
-        isLoggedIn.value = false
+        handleLogout(false)
       }
     }
   } else {
@@ -165,7 +208,7 @@ onMounted(async () => {
         isLoggedIn.value = true
         await fetchUserSessions()
       } catch (e) {
-        handleLogout()
+        handleLogout(false)
       }
     }
   }
@@ -194,19 +237,21 @@ const handleLoginSuccess = async (userProfile) => {
   await fetchUserSessions()
 }
 
-const handleLogout = () => {
-  if (isAdminRoute.value) {
-    localStorage.removeItem('tps_admin_token')
-    localStorage.removeItem('tps_admin_user')
-  } else {
-    localStorage.removeItem('tps_token')
-    localStorage.removeItem('tps_user')
-  }
+const handleLogout = (redirect = true) => {
+  localStorage.removeItem('tps_token')
+  localStorage.removeItem('tps_user')
+  localStorage.removeItem('tps_admin_token')
+  localStorage.removeItem('tps_admin_user')
+  localStorage.removeItem('tps_login_date')
+  localStorage.removeItem('tps_login_time')
   currentUser.value = null
   isLoggedIn.value = false
   messages.value = []
   sessions.value = []
   activeSessionId.value = ''
+  if (redirect && isAdminRoute.value) {
+    window.location.href = '/'
+  }
 }
 
 const handleNewSession = () => {
@@ -266,6 +311,11 @@ const handleSelectPrompt = (promptText) => {
   selectedPrompt.value = promptText
 }
 
+const handleRunPrompt = (promptText) => {
+  handleSelectPrompt(promptText)
+  handleSendQuery(promptText)
+}
+
 const handleSendQuery = async (queryText) => {
   const userTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   const token = localStorage.getItem('tps_token')
@@ -317,6 +367,8 @@ const handleSendQuery = async (queryText) => {
         sql: data.sql_executed,
         data: data.data,
         chartConfig: data.chart_config,
+        suggestions: data.suggestions || null,
+        is_cached: data.is_cached || false,
         timestamp: botTimestamp
       })
     } else {
@@ -325,6 +377,7 @@ const handleSendQuery = async (queryText) => {
         userQuery: queryText,
         content: data.answer || 'Maaf, terjadi kesalahan saat memproses data.',
         error: data.error || 'Eksekusi query gagal.',
+        suggestions: data.suggestions || null,
         timestamp: botTimestamp
       })
     }

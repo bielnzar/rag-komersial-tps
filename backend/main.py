@@ -2,7 +2,10 @@ from fastapi import FastAPI, HTTPException, Request, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
+import asyncio
 import os
+import re
+import uuid
 import logging
 from typing import Optional, List
 
@@ -16,7 +19,10 @@ from agents.graph import build_graph
 from agents.chart_gen import generate_chart_config
 from db import get_db, DuckDBPool, get_telemetry_db
 from cache import semantic_cache
-from auth import authenticate_user, get_current_user_from_header, verify_jwt_token
+from auth import (
+    authenticate_user, get_current_user_from_header, verify_jwt_token, 
+    require_admin_user, get_all_users_safe, add_user, update_user, delete_user
+)
 from agents.pipeline_logger import log_step, log_error
 
 app = FastAPI(
@@ -66,6 +72,8 @@ class ChatResponse(BaseModel):
     sql_executed: str | None = None
     error: str | None = None
     data: list | None = None
+    suggestions: Optional[List[str]] = None
+    is_cached: bool = False
 
 class VisualizeRequest(BaseModel):
     query: str
@@ -75,6 +83,24 @@ class VisualizeResponse(BaseModel):
     status: str
     chart_config: dict | None = None
     error: str | None = None
+
+class FeedbackRequest(BaseModel):
+    session_id: str
+    query: str
+    sql_executed: Optional[str] = None
+    rating: str  # 'THUMBS_UP' | 'THUMBS_DOWN'
+    feedback_note: Optional[str] = None
+
+class CreateUserRequest(BaseModel):
+    username: str
+    password: str
+    name: str
+    role: str = "user"
+
+class UpdateUserRequest(BaseModel):
+    name: Optional[str] = None
+    role: Optional[str] = None
+    password: Optional[str] = None
 
 
 # =============================================================
@@ -198,44 +224,62 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
                 detail=f"Batasan kuota request terlampaui ({count}/30 request per menit). Harap tunggu beberapa detik."
             )
 
-        # 🔍 2. VALIDASI PRE-FLIGHT KESPESIFIKAN PERTANYAAN (0 Token LLM / Anti-Ambigu)
-        is_specific, guidance_msg = check_query_specificity(request.query)
-        if not is_specific:
-            log_step("QUERY_AMBIGUOUS", f"Query ditolak karena kurang spesifik: '{request.query}'")
-            semantic_cache.save_chat_message_to_session(
-                username=user_id,
-                role=user_role,
-                session_id=session_id,
-                user_query=request.query,
-                ai_answer=guidance_msg,
-                sql=None,
-                data=None,
-                chart_config=None
-            )
-            return ChatResponse(
-                status="success",
-                answer=guidance_msg,
-                session_id=session_id,
-                chart_config=None,
-                sql_executed=None,
-                error=None,
-                data=None
-            )
-
-        # 💬 3. AMBIL RIWAYAT PERCAKAPAN CONTEXT MEMORY
+        # 💬 2. AMBIL RIWAYAT PERCAKAPAN CONTEXT MEMORY TERLEBIH DAHULU
         session_history = semantic_cache.get_session_messages(user_id, session_id)
 
-        # ⚡ 4. CEK SEMANTIC CACHE (Dengan Deteksi Pertanyaan Lanjutan)
-        is_followup = len(session_history) > 0 and (
-            len(request.query.split()) <= 6 or 
-            any(kw in request.query.lower() for kw in ["bagaimana", "bagaimana dengan", "siapa", "tahun", "tersebut", "itu", "yang", "berapa"])
-        )
+        # 🔄 3. DETEKSI APAKAH PERTANYAAN MERUPAKAN FOLLOW-UP / LANJUTAN KONTEKS
+        q_lower = request.query.lower().strip()
+        has_history = bool(session_history and len(session_history) > 0)
+        
+        has_year = bool(re.search(r'\b20[2-3][0-9]\b', q_lower))
+        has_followup_kw = any(kw in q_lower for kw in [
+            "bagaimana", "kalau", "siapa", "berapa", "apa", "mana", "coba", "tampilkan", "lihat",
+            "tahun", "bulan", "lalu", "sekarang", "kemudian", "berikutnya", "sebelumnya", "tadi",
+            "tersebut", "itu", "ini", "yang", "nya", "selain", "lagi",
+            "top", "terbesar", "terkecil", "terbanyak", "terendah", "tertinggi", "urutkan", "ranking", "peringkat", "grafik", "chart",
+            "nomor", "posisi", "urutan", "pertama", "kedua", "ketiga", "terakhir", "teratas", "terbawah", "ke-",
+            "domestik", "internasional", "domestic", "international", "export", "import",
+            "cma", "ssl", "msk", "msc", "one", "meratus", "spil", "cosco", "evergreen", "oocl", "samudera"
+        ])
+        
+        # Follow-up valid jika memiliki konteks riwayat dan mengandung indikator perubahan konteks / tahun
+        is_followup = has_history and (has_followup_kw or has_year)
 
-        if not request.generate_chart and not is_followup:
+        # 🔍 4. VALIDASI PRE-FLIGHT KESPESIFIKAN PERTANYAAN (0 Token LLM / Anti-Ambigu)
+        # Hanya dijalankan jika BUKAN merupakan pertanyaan lanjutan dalam sesi obrolan aktif
+        if not is_followup:
+            is_specific, guidance_msg = check_query_specificity(request.query)
+            if not is_specific:
+                log_step("QUERY_AMBIGUOUS", f"Query baru ditolak karena kurang spesifik: '{request.query}'")
+                semantic_cache.save_chat_message_to_session(
+                    username=user_id,
+                    role=user_role,
+                    session_id=session_id,
+                    user_query=request.query,
+                    ai_answer=guidance_msg,
+                    sql=None,
+                    data=None,
+                    chart_config=None
+                )
+                return ChatResponse(
+                    status="success",
+                    answer=guidance_msg,
+                    session_id=session_id,
+                    chart_config=None,
+                    sql_executed=None,
+                    error=None,
+                    data=None
+                )
+        else:
+            log_step("FOLLOWUP_DETECTED", f"Pertanyaan lanjutan terdeteksi: '{request.query}'. Konteks riwayat diikutsertakan ke LangGraph.")
+
+        # ⚡ 5. CEK SEMANTIC CACHE (Cek apakah kueri memiliki jawaban tersimpan di Semantic Cache)
+        if not request.generate_chart:
             cached_res = semantic_cache.get(request.query)
             if cached_res:
                 log_step("CACHE_HIT", f"Respon diambil langsung dari Semantic Cache", f"Query: '{request.query}'")
                 cached_res["session_id"] = session_id
+                cached_res["is_cached"] = True
                 
                 semantic_cache.save_chat_message_to_session(
                     username=user_id,
@@ -261,11 +305,11 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
             "final_answer": None,
             "echarts_config": None,
             "force_chart": request.generate_chart,
-            "chat_history": session_history[-6:] if session_history else [],
+            "chat_history": session_history[-6:] if (is_followup and session_history) else [],
             "role": user_role
         }
         
-        result_state = agent_app.invoke(initial_state)
+        result_state = await asyncio.to_thread(agent_app.invoke, initial_state)
         
         final_answer = result_state.get("final_answer")
         if not final_answer or not str(final_answer).strip():
@@ -274,6 +318,7 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
         q_result = result_state.get("query_result")
         c_config = result_state.get("echarts_config")
         has_error = result_state.get("sql_error")
+        suggestions = result_state.get("suggestions")
 
         log_step("PIPELINE_END", f"Alur selesai. Status: {'SUCCESS' if not has_error else 'ERROR'}", f"Err: {has_error if has_error else 'None'}")
 
@@ -284,7 +329,9 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
             "chart_config": c_config,
             "sql_executed": sql_exec,
             "error": has_error,
-            "data": q_result
+            "data": q_result,
+            "suggestions": suggestions,
+            "is_cached": False
         }
 
         # 💾 5. SIMPAN KE PERSISTENT CHAT HISTORY & SEMANTIC CACHE
@@ -300,8 +347,10 @@ async def chat_endpoint(request: ChatRequest, authorization: Optional[str] = Hea
                 chart_config=c_config
             )
             
-            if q_result and not is_followup:
-                semantic_cache.set(request.query, resp_payload)
+            if q_result:
+                cache_save_payload = dict(resp_payload)
+                cache_save_payload["is_cached"] = True
+                semantic_cache.set(request.query, cache_save_payload)
 
         return ChatResponse(**resp_payload)
         
@@ -331,7 +380,7 @@ async def visualize_endpoint(request: VisualizeRequest, authorization: Optional[
         raise HTTPException(status_code=400, detail="Data tidak boleh kosong.")
         
     try:
-        chart_config = generate_chart_config(request.query, request.data)
+        chart_config = await asyncio.to_thread(generate_chart_config, request.query, request.data)
         
         return VisualizeResponse(
             status="success" if chart_config else "error",
@@ -352,6 +401,37 @@ async def clear_cache(authorization: Optional[str] = Header(None)):
     return {"status": "success", "message": "Cache dan riwayat percakapan berhasil dibersihkan."}
 
 # =============================================================
+# USER MANAGEMENT ENDPOINTS (ADMIN ONLY)
+# =============================================================
+@app.get("/api/v1/admin/users")
+async def admin_get_users(authorization: Optional[str] = Header(None)):
+    """Mengambil daftar seluruh pengguna (khusus admin, tanpa password)."""
+    await require_admin_user(authorization)
+    return {"status": "success", "users": get_all_users_safe()}
+
+@app.post("/api/v1/admin/users")
+async def admin_create_user(request: CreateUserRequest, authorization: Optional[str] = Header(None)):
+    """Menambahkan pengguna baru (khusus admin)."""
+    await require_admin_user(authorization)
+    created = add_user(request.username, request.password, request.name, request.role)
+    return {"status": "success", "user": created}
+
+@app.put("/api/v1/admin/users/{username}")
+async def admin_update_user(username: str, request: UpdateUserRequest, authorization: Optional[str] = Header(None)):
+    """Memperbarui profil pengguna atau reset password (khusus admin)."""
+    await require_admin_user(authorization)
+    updated = update_user(username, name=request.name, role=request.role, new_password=request.password)
+    return {"status": "success", "user": updated}
+
+@app.delete("/api/v1/admin/users/{username}")
+async def admin_delete_user(username: str, authorization: Optional[str] = Header(None)):
+    """Menghapus pengguna (khusus admin)."""
+    admin = await require_admin_user(authorization)
+    delete_user(username, current_admin_username=admin["sub"])
+    return {"status": "success", "message": f"Pengguna '{username}' berhasil dihapus."}
+
+
+# =============================================================
 # ADMIN ENDPOINTS (API KEYS & TELEMETRY)
 # =============================================================
 from api_keys_manager import get_all_keys, save_all_keys, get_step_configs, save_step_configs, get_model_catalog
@@ -359,9 +439,7 @@ from api_keys_manager import get_all_keys, save_all_keys, get_step_configs, save
 @app.get("/api/v1/admin/step_configs")
 async def admin_get_step_configs(authorization: Optional[str] = Header(None)):
     """Mengambil konfigurasi lengkap per tahapan (Provider, Model, List Kunci per-Step) dan Katalog."""
-    user = await get_current_user_from_header(authorization)
-    if user["role"] not in ["executive", "admin"]:
-        raise HTTPException(status_code=403, detail="Akses ditolak.")
+    await require_admin_user(authorization)
         
     configs = get_step_configs()
     all_keys = get_all_keys()
@@ -432,9 +510,7 @@ def _unmask_key_value(input_key: str, existing_key_list: list, idx: int) -> str:
 @app.post("/api/v1/admin/step_configs")
 async def admin_save_step_configs(request: Request, authorization: Optional[str] = Header(None)):
     """Menyimpan konfigurasi per tahapan Multi-Agent dengan menjaga integritas kunci."""
-    user = await get_current_user_from_header(authorization)
-    if user["role"] not in ["executive", "admin"]:
-        raise HTTPException(status_code=403, detail="Akses ditolak.")
+    await require_admin_user(authorization)
         
     try:
         payload = await request.json()
@@ -463,9 +539,7 @@ async def admin_save_step_configs(request: Request, authorization: Optional[str]
 @app.get("/api/v1/admin/keys")
 async def admin_get_keys(authorization: Optional[str] = Header(None)):
     """Mendapatkan daftar API Keys dengan masking."""
-    user = await get_current_user_from_header(authorization)
-    if user["role"] not in ["executive", "admin"]:
-        raise HTTPException(status_code=403, detail="Akses ditolak. Fitur khusus Admin/Eksekutif.")
+    await require_admin_user(authorization)
         
     keys = get_all_keys()
     
@@ -483,9 +557,7 @@ async def admin_get_keys(authorization: Optional[str] = Header(None)):
 @app.post("/api/v1/admin/keys")
 async def admin_save_keys(request: Request, authorization: Optional[str] = Header(None)):
     """Menyimpan pembaruan daftar API Keys tanpa menghapus step_configs."""
-    user = await get_current_user_from_header(authorization)
-    if user["role"] not in ["executive", "admin"]:
-        raise HTTPException(status_code=403, detail="Akses ditolak.")
+    await require_admin_user(authorization)
         
     try:
         payload = await request.json()
@@ -506,9 +578,7 @@ async def admin_save_keys(request: Request, authorization: Optional[str] = Heade
 @app.get("/api/v1/admin/metrics")
 async def admin_get_metrics(authorization: Optional[str] = Header(None)):
     """Mengambil agregasi telemetri token dan latensi dari DuckDB log_audit_token."""
-    user = await get_current_user_from_header(authorization)
-    if user["role"] not in ["executive", "admin"]:
-        raise HTTPException(status_code=403, detail="Akses ditolak.")
+    await require_admin_user(authorization)
         
     try:
         conn = get_telemetry_db()
@@ -559,6 +629,90 @@ async def admin_get_metrics(authorization: Optional[str] = Header(None)):
         logger.error(f"Gagal mengambil metrik telemetri: {e}")
         return {"status": "error", "detail": str(e), "metrics": {}, "recent_logs": []}
 
+
+# =============================================================
+# USER FEEDBACK & KEPUASAN PENGGUNA (TUGAS 2.3)
+# =============================================================
+@app.post("/api/v1/feedback")
+async def submit_feedback(req: FeedbackRequest, authorization: Optional[str] = Header(None)):
+    """Mencatat rating kepuasan pengguna (Thumbs Up / Down) ke DuckDB Telemetri."""
+    user_id = "anonymous"
+    if authorization:
+        try:
+            user = await get_current_user_from_header(authorization)
+            user_id = user.get("sub", "anonymous")
+        except Exception:
+            user_id = "anonymous"
+
+    try:
+        conn = get_telemetry_db()
+        feedback_id = str(uuid.uuid4())
+        conn.execute("""
+            INSERT INTO log_user_feedback 
+            (id, timestamp, session_id, user_id, query, sql_executed, rating, feedback_note)
+            VALUES (?, current_timestamp, ?, ?, ?, ?, ?, ?)
+        """, (feedback_id, req.session_id, user_id, req.query, req.sql_executed, req.rating, req.feedback_note))
+        
+        logger.info(f"⭐ Feedback tercatat: {req.rating} dari user {user_id} (Query: {req.query[:40]})")
+        return {"status": "success", "message": "Terima kasih atas umpan balik Anda!"}
+    except Exception as e:
+        logger.error(f"❌ Gagal menyimpan feedback pengguna: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/admin/feedbacks")
+async def admin_get_feedbacks(authorization: Optional[str] = Header(None)):
+    """Mengambil riwayat feedback pengguna untuk audit & analisis kepuasan di Admin Dashboard."""
+    await require_admin_user(authorization)
+        
+    try:
+        conn = get_telemetry_db()
+        
+        # Ringkasan rating
+        q_summary = """
+            SELECT 
+                COUNT(*) as total_feedback,
+                SUM(CASE WHEN rating = 'THUMBS_UP' THEN 1 ELSE 0 END) as thumbs_up,
+                SUM(CASE WHEN rating = 'THUMBS_DOWN' THEN 1 ELSE 0 END) as thumbs_down
+            FROM log_user_feedback
+        """
+        summary_row = conn.execute(q_summary).fetchone()
+        total_fb = summary_row[0] or 0
+        thumbs_up = summary_row[1] or 0
+        thumbs_down = summary_row[2] or 0
+        satisfaction_rate = round((thumbs_up * 100.0 / total_fb), 1) if total_fb > 0 else 0.0
+        
+        # Riwayat feedback (100 transaksi terakhir)
+        q_list = """
+            SELECT id, timestamp, session_id, user_id, query, sql_executed, rating, feedback_note
+            FROM log_user_feedback
+            ORDER BY timestamp DESC LIMIT 100
+        """
+        df_list = conn.execute(q_list).df()
+        df_list['timestamp'] = df_list['timestamp'].astype(str)
+        df_list = df_list.fillna("")
+        feedbacks = df_list.to_dict(orient='records')
+        
+        return {
+            "status": "success",
+            "summary": {
+                "total_feedback": total_fb,
+                "thumbs_up": thumbs_up,
+                "thumbs_down": thumbs_down,
+                "satisfaction_rate": satisfaction_rate
+            },
+            "feedbacks": feedbacks
+        }
+    except Exception as e:
+        logger.error(f"❌ Gagal mengambil riwayat feedback admin: {e}")
+        return {
+            "status": "error",
+            "detail": str(e),
+            "summary": {"total_feedback": 0, "thumbs_up": 0, "thumbs_down": 0, "satisfaction_rate": 0.0},
+            "feedbacks": []
+        }
+
+
 @app.get("/api/v1/data/status")
 async def get_data_status():
     """Endpoint kesehatan database DuckDB secara live realtime."""
@@ -581,7 +735,7 @@ async def get_data_status():
 
         status_payload = {
             "status": "healthy",
-            "database_path": db_path,
+            "database_path": "tps_komersial.duckdb",
             "database_size_mb": db_size_mb,
             "total_tables": len(tables),
             "tables": table_stats
@@ -596,10 +750,12 @@ async def get_data_status():
         }
 
 @app.get("/api/v1/admin/table_preview/{table_name}")
-async def get_table_preview(table_name: str):
+async def get_table_preview(table_name: str, authorization: Optional[str] = Header(None)):
     """Mengembalikan skema kolom dan sampel data dari tabel DuckDB untuk Admin Data Explorer."""
+    await require_admin_user(authorization)
     try:
         import pandas as pd
+        import math
         conn = get_db()
         clean_table_name = table_name.strip()
         
@@ -619,14 +775,24 @@ async def get_table_preview(table_name: str):
                 pass
                 
         columns = cols_df.to_dict(orient="records")
+        for c in columns:
+            if c.get("column_name") is not None:
+                c["column_name"] = str(c["column_name"])
+            if c.get("column_type") is not None:
+                c["column_type"] = str(c["column_type"])
         
         # Ambil 25 baris data mentah
         sample_df = conn.execute(f'SELECT * FROM "{clean_table_name}" LIMIT 25;').df()
-        for col in sample_df.columns:
-            sample_df[col] = sample_df[col].apply(lambda x: None if pd.isna(x) or x is None else str(x))
-            
         sample_rows = sample_df.to_dict(orient="records")
         
+        # 🛡️ Sanitasi ketat: pastikan 100% JSON-compliant (bebas dari float NaN / Inf)
+        for row in sample_rows:
+            for k, v in list(row.items()):
+                if v is None or pd.isna(v) or (isinstance(v, float) and (math.isnan(v) or math.isinf(v))):
+                    row[k] = None
+                else:
+                    row[k] = str(v)
+            
         return {
             "status": "success",
             "table_name": clean_table_name,
@@ -634,7 +800,7 @@ async def get_table_preview(table_name: str):
             "sample_rows": sample_rows
         }
     except Exception as e:
-        logger.error(f"Gagal mengambil preview tabel {table_name}: {e}")
+        logger.error(f"❌ Gagal mengambil preview tabel '{table_name}': {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/v1/admin/re_etl")

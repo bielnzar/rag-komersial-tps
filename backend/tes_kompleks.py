@@ -55,7 +55,7 @@ print(f"\n4. Unit Cost Status FULL 2024:\n   - Total Biaya: Rp {q4[0]:,.2f} | Vo
 
 # Q5: Transhipment DISCHARGE 2024
 q5 = conn.execute("""
-    SELECT SUM(yard_revenue) as total_revenue, SUM("20_") as total_20ft 
+    SELECT SUM(yard_revenue) as total_revenue, SUM("20") as total_20ft 
     FROM fakta_transhipment 
     WHERE tipe ILIKE 'DISCHARGE' AND year = 2024;
 """).fetchone()

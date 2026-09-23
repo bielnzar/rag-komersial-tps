@@ -38,10 +38,15 @@ logger = logging.getLogger(__name__)
 # FUNGSI-FUNGSI PEMBERSIHAN DATA (SILVER LAYER)
 # ==========================================
 
-def hapus_kolom_hantu(df: pd.DataFrame) -> pd.DataFrame:
+def sanitasi_skema_awal(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Menghapus kolom 'Unnamed' (kolom hantu dari Excel) 
-    serta baris dan kolom yang 100% kosong (NaN).
+    Melakukan sanitasi skema awal pada DataFrame mentah (Silver Layer):
+    1. Membersihkan spasi tak terlihat di awal/akhir nama kolom (trimming).
+    2. Menyeragamkan kolom simbolik '%' menjadi 'persentase'.
+    3. Diferensiasi semantik kolom berulang (misal boxes_teus vs moves_teus).
+    4. Menghapus kolom artefak format ('Unnamed') dari sisa layout spreadsheet.
+    5. Menghapus baris dan kolom yang 100% kosong (NaN).
+    6. Menstandarkan karakter dash/strip '-' menjadi numerik 0.
     """
     # Bersihkan spasi tak terlihat di awal/akhir nama kolom (misal "TEUS " jadi "TEUS")
     df.columns = df.columns.astype(str).str.strip()
@@ -62,7 +67,7 @@ def hapus_kolom_hantu(df: pd.DataFrame) -> pd.DataFrame:
             df.rename(columns={cols[i+1]: 'moves_teus'}, inplace=True)
             cols[i+1] = 'moves_teus'
             
-    # Deteksi dan buang kolom yang mengandung kata 'Unnamed'
+    # Deteksi dan buang kolom yang mengandung kata 'Unnamed' (kolom artefak format spreadsheet)
     df_bersih = df.loc[:, ~df.columns.str.contains('^Unnamed', case=False, na=False)]
     
     # Buang baris (axis=0) dan kolom (axis=1) yang isinya NaN semua
@@ -73,6 +78,10 @@ def hapus_kolom_hantu(df: pd.DataFrame) -> pd.DataFrame:
     df_bersih = df_bersih.replace(r'^\s*-\s*$', 0, regex=True)
     
     return df_bersih
+
+# Alias kompatibilitas ke belakang
+hapus_kolom_hantu = sanitasi_skema_awal
+
 
 def paksa_angka(df: pd.DataFrame, daftar_kolom: list) -> pd.DataFrame:
     """

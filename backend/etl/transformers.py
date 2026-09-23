@@ -1,6 +1,6 @@
 import pandas as pd
 import logging
-from etl.utils import hapus_kolom_hantu, paksa_angka, pastikan_kolom_unik
+from etl.utils import sanitasi_skema_awal, paksa_angka, pastikan_kolom_unik
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ def _normalisasi_nama_sheet(nama_sheet: str) -> str:
 # ==========================================
 def proses_vessel(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.DataFrame, pd.DataFrame, str]:
     """Mengolah data operasional kapal."""
-    df_silver = hapus_kolom_hantu(df)
+    df_silver = sanitasi_skema_awal(df)
     
     kolom_angka = ['TEUS', 'Boxes', 'BCH', 'BSH']
     df_silver = paksa_angka(df_silver, kolom_angka)
@@ -37,7 +37,7 @@ def proses_vessel(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.DataFrame, pd.D
 # ==========================================
 def proses_throughput(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.DataFrame, pd.DataFrame, str]:
     """Mengolah data KPI Throughput Pelabuhan."""
-    df_silver = hapus_kolom_hantu(df)
+    df_silver = sanitasi_skema_awal(df)
     
     kolom_angka = ['ACTUAL', 'BUDGET', 'ACTUAL VS BUDGET', 'TEUS']
     df_silver = paksa_angka(df_silver, kolom_angka)
@@ -54,7 +54,7 @@ def proses_throughput(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.DataFrame, 
 # ==========================================
 def proses_market_share(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.DataFrame, pd.DataFrame, str]:
     """Mengolah data persaingan pasar dan melakukan Unpivot otomatis."""
-    df_silver = hapus_kolom_hantu(df)
+    df_silver = sanitasi_skema_awal(df)
     
     df_silver.rename(columns=lambda x: "LOP" if str(x).strip().upper() == "VESSEL OPERATOR" else x, inplace=True)
     df_silver = paksa_angka(df_silver, ['TEUS', 'persentase', '2022 ACTUAL', '2023 ACTUAL'])
@@ -86,13 +86,15 @@ def proses_market_share(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.DataFrame
 # ==========================================
 def proses_transhipment(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.DataFrame, pd.DataFrame, str]:
     """Mengolah data transaksi alih muat kontainer (Transhipment)."""
-    df_silver = hapus_kolom_hantu(df)
+    df_silver = sanitasi_skema_awal(df)
     
     # Standarisasi kolom LOP / Vessel Operator
     df_silver.rename(columns=lambda x: "LOP" if str(x).strip().upper() in ["VESSEL OPERATOR", "OPERATOR"] else x, inplace=True)
     df_silver = paksa_angka(df_silver, ['SIZE', 'YEAR', 'YARD REVENUE', "20'", "40'", "45'", 'TEUS', 'BOXES'])
     
     df_gold = df_silver.copy()
+    if 'YEAR' in df_gold.columns:
+        df_gold = df_gold[(df_gold['YEAR'] >= 2020) & (df_gold['YEAR'] <= 2030)]
     df_gold['sumber_sheet'] = nama_sheet.strip().upper()
     df_gold.columns = df_gold.columns.str.lower().str.replace(r'[^a-z0-9_]', '_', regex=True).str.replace(r'_+', '_', regex=True).str.strip('_')
     
@@ -104,12 +106,28 @@ def proses_transhipment(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.DataFrame
 # ==========================================
 def proses_vessel_service(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.DataFrame, pd.DataFrame, str]:
     """Mengolah data performa & rute layanan kapal (Vessel Service)."""
-    df_silver = hapus_kolom_hantu(df)
+    df_silver = sanitasi_skema_awal(df)
     
     df_silver.rename(columns=lambda x: "LOP" if str(x).strip().upper() in ["VESSEL OPERATOR", "OPERATOR"] else x, inplace=True)
+    
+    # 🧹 RECOVERY TAHUN RUSAK (1905 & 2099 akibat formula Excel =YEAR()):
+    # Di sheet New, baris dengan YEAR 1905 atau 2099 memiliki tahun asli di kolom 'tahun'
+    if 'YEAR' in df_silver.columns and 'tahun' in df_silver.columns:
+        numeric_year = pd.to_numeric(df_silver['YEAR'], errors='coerce')
+        mask_corrupt = numeric_year.isin([1905, 2099])
+        recovered = pd.to_numeric(df_silver.loc[mask_corrupt, 'tahun'], errors='coerce')
+        df_silver.loc[mask_corrupt & recovered.notna(), 'YEAR'] = recovered
+
     df_silver = paksa_angka(df_silver, ['YEAR', 'MONTH', 'TOTAL CALL', 'AVERAGE BMPH', 'AVERAGE GMPH', 'MOVES', 'TEUS'])
     
     df_gold = df_silver.copy()
+    
+    # 🧹 SANITASI RENTANG TAHUN VALID (2020 s/d 2030): Membuang 0.0 atau baris formula kosong
+    if 'YEAR' in df_gold.columns:
+        df_gold = df_gold[(df_gold['YEAR'] >= 2020) & (df_gold['YEAR'] <= 2030)]
+    elif 'year' in df_gold.columns:
+        df_gold = df_gold[(df_gold['year'] >= 2020) & (df_gold['year'] <= 2030)]
+
     df_gold['sumber_sheet'] = nama_sheet.strip().upper()
     df_gold.columns = df_gold.columns.str.lower().str.replace(r'[^a-z0-9_]', '_', regex=True).str.replace(r'_+', '_', regex=True).str.strip('_')
     
@@ -121,7 +139,7 @@ def proses_vessel_service(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.DataFra
 # ==========================================
 def proses_komersial_dashboard(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.DataFrame, pd.DataFrame, str]:
     """Mengolah data ringkasan KPI Finansial & Komersial."""
-    df_silver = hapus_kolom_hantu(df)
+    df_silver = sanitasi_skema_awal(df)
     
     df_silver.rename(columns=lambda x: "LOP" if str(x).strip().upper() in ["VESSEL OPERATOR", "OPERATOR"] else x, inplace=True)
     df_silver = paksa_angka(df_silver, ['Tahun', 'TAHUN', 'TOTAL ALL REVENUE', 'MOORING REVENUE', 'TOTAL REVENUE', 'TOTAL TEUs'])
@@ -138,7 +156,7 @@ def proses_komersial_dashboard(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.Da
 # ==========================================
 def proses_realisasi_uc(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.DataFrame, pd.DataFrame, str]:
     """Mengolah data Realisasi Unit Cost operasional."""
-    df_silver = hapus_kolom_hantu(df)
+    df_silver = sanitasi_skema_awal(df)
     
     df_silver = paksa_angka(df_silver, ['Tahun', 'TAHUN', "20'", "40'", "45'", 'TOTAL BOX', 'TOTAL TEUs', 'TOTAL'])
     
@@ -154,11 +172,17 @@ def proses_realisasi_uc(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.DataFrame
 # ==========================================
 def proses_overview_box(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.DataFrame, pd.DataFrame, str]:
     """Mengolah data ringkasan volume box kontainer (Domestik/Internasional)."""
-    df_silver = hapus_kolom_hantu(df)
+    df_silver = sanitasi_skema_awal(df)
+    
+    # 🧹 Normalisasi typo header dari file mentah Excel jika ada
+    df_silver.rename(columns=lambda x: 'MONTH' if str(x).strip().upper() in ['MONT H', 'MONTH'] else x, inplace=True)
+    df_silver.rename(columns=lambda x: 'TEUS' if str(x).strip().upper() == 'TEUS' else x, inplace=True)
     
     df_silver = paksa_angka(df_silver, ['YEAR', 'TEUS', 'Boxes'])
     
     df_gold = df_silver.copy()
+    if 'YEAR' in df_gold.columns:
+        df_gold = df_gold[(df_gold['YEAR'] >= 2020) & (df_gold['YEAR'] <= 2030)]
     df_gold['kategori_layanan'] = _normalisasi_nama_sheet(nama_sheet)
     df_gold.columns = df_gold.columns.str.lower().str.replace(r'[^a-z0-9_]', '_', regex=True).str.replace(r'_+', '_', regex=True).str.strip('_')
     
@@ -170,7 +194,7 @@ def proses_overview_box(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.DataFrame
 # ==========================================
 def proses_rest_n_disc(df: pd.DataFrame, nama_sheet: str) -> tuple[pd.DataFrame, pd.DataFrame, str]:
     """Mengolah data Restitusi & Diskon Komersial."""
-    df_silver = hapus_kolom_hantu(df)
+    df_silver = sanitasi_skema_awal(df)
     
     df_gold = df_silver.copy()
     df_gold['sumber_sheet'] = nama_sheet.strip().upper()

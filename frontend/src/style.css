@@ -4,59 +4,80 @@
 
 @layer base {
   body {
-    background-color: #0b0f19;
-    color: #f1f5f9;
+    background-color: #080d1a;
+    color: #e2e8f0;
     font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: rgba(14, 165, 233, 0.25);
+    color: #38bdf8;
   }
 }
 
-/* Custom Soft Subdued Background Mesh */
+/* Subtle Architectural Naval Gradient (Quiet & Non-Neon) */
 .bg-mesh {
+  background-color: #080d1a;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(14, 116, 144, 0.08) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(13, 148, 136, 0.07) 0px, transparent 50%),
-    radial-gradient(at 50% 100%, rgba(15, 23, 42, 0.9) 0px, transparent 100%);
+    radial-gradient(circle at 50% 0%, rgba(14, 116, 144, 0.05) 0%, transparent 45%),
+    linear-gradient(180deg, #0a1122 0%, #080d1a 100%);
   background-attachment: fixed;
 }
 
-/* Bespoke Human-Designed Surface Cards */
+/* Solid Enterprise Surface Cards (Linear / Vercel Industrial Style) */
+.card-enterprise,
 .card-executive {
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.25);
+  background-color: #0e172a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
 }
 
 .card-interactive {
-  background: rgba(30, 41, 59, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  background-color: #111c33;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .card-interactive:hover {
-  background: rgba(30, 41, 59, 0.7);
-  border-color: rgba(45, 212, 191, 0.3);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.3);
+  background-color: #162442;
+  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.4);
 }
 
-/* Custom Scrollbar */
+/* Custom Precision Scrollbar */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(11, 15, 25, 0.5);
+  background: #080d1a;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.6);
-  border-radius: 9999px;
+  background: #1e293b;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(20, 184, 166, 0.7);
+  background: #334155;
+}
+
+/* Executive Editorial Reading Typography */
+.narrative-reading {
+  color: #f1f5f9;
+  line-height: 1.7;
+}
+
+.narrative-reading strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.narrative-reading em {
+  color: #94a3b8;
+  font-style: italic;
 }

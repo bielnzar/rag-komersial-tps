@@ -7,7 +7,7 @@ import os
 import secrets
 import time
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from fastapi import HTTPException, Header, Depends
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ CREDENTIALS_FILE = BASE_DIR / "credentials/users.json"
 # Key rahasia JWT — menggunakan env var jika ada, atau generate key acak 256-bit
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "TPS_SECRET_KEY_PROD_2026_ENTERPRISE_SECURE_HASH_98231")
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRATION_SECONDS = 86400  # 24 jam TTL Token
+JWT_EXPIRATION_SECONDS = 28800  # 8 jam (1 shift kerja), mencegah sesi aktif tak terbatas
 
 def hash_password(password: str, salt: Optional[str] = None) -> tuple[str, str]:
     """
@@ -51,14 +51,25 @@ def load_user_database() -> Dict[str, Dict[str, Any]]:
                 records = json.load(f)
                 for item in records:
                     u = item["username"].lower().strip()
-                    pwd = item["password_raw"]
-                    p_hash, p_salt = hash_password(pwd)
+                    role = item.get("role", "user")
+                    name = item.get("name", u)
+                    created_at = item.get("created_at", time.strftime("%Y-%m-%dT%H:%M:%SZ"))
+
+                    if "hash" in item and "salt" in item:
+                        p_hash = item["hash"]
+                        p_salt = item["salt"]
+                    elif "password_raw" in item:
+                        p_hash, p_salt = hash_password(item["password_raw"])
+                    else:
+                        continue
+
                     db[u] = {
                         "username": u,
                         "hash": p_hash,
                         "salt": p_salt,
-                        "role": item["role"],
-                        "name": item["name"]
+                        "role": role,
+                        "name": name,
+                        "created_at": created_at
                     }
             logger.info(f"🔑 [AUTH] Berhasil memuat {len(db)} akun pengguna dari credentials/users.json")
             return db
@@ -67,10 +78,8 @@ def load_user_database() -> Dict[str, Dict[str, Any]]:
 
     # Fallback Default Enterprise Users jika file tidak ditemukan
     default_accounts = [
-        ("executive", "tps123", "executive", "Direksi & Executive TPS"),
-        ("komersial", "tps123", "commercial", "Tim Komersial TPS"),
-        ("operasional", "tps123", "operation", "Tim Operasional Lapangan"),
-        ("guest", "guest123", "guest", "Tamu / Guest User")
+        ("admin", "admin123", "admin", "System Administrator"),
+        ("user", "tps123", "user", "TPS Enterprise User")
     ]
     for u, pwd, r, name in default_accounts:
         p_hash, p_salt = hash_password(pwd)
@@ -79,11 +88,119 @@ def load_user_database() -> Dict[str, Dict[str, Any]]:
             "hash": p_hash,
             "salt": p_salt,
             "role": r,
-            "name": name
+            "name": name,
+            "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ")
         }
     return db
 
 USER_DATABASE: Dict[str, Dict[str, Any]] = load_user_database()
+
+def save_user_database_to_disk() -> bool:
+    """Menyimpan seluruh user aktif ke credentials/users.json secara aman (tanpa plaintext)."""
+    try:
+        records = []
+        for u, data in USER_DATABASE.items():
+            records.append({
+                "username": data["username"],
+                "name": data["name"],
+                "role": data["role"],
+                "hash": data["hash"],
+                "salt": data["salt"],
+                "created_at": data.get("created_at", time.strftime("%Y-%m-%dT%H:%M:%SZ"))
+            })
+        CREDENTIALS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        CREDENTIALS_FILE.write_text(json.dumps(records, indent=2), encoding="utf-8")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Gagal menyimpan database user ke disk: {e}")
+        return False
+
+def get_all_users_safe() -> List[Dict[str, Any]]:
+    """Mengembalikan seluruh daftar user tanpa membeberkan hash dan salt ke klien."""
+    users = []
+    for u, data in USER_DATABASE.items():
+        users.append({
+            "username": data["username"],
+            "name": data["name"],
+            "role": data["role"],
+            "created_at": data.get("created_at", "-")
+        })
+    return sorted(users, key=lambda x: (x["role"] != "admin", x["username"]))
+
+def add_user(username: str, password: str, name: str, role: str = "user") -> Dict[str, Any]:
+    """Menambahkan user baru dengan hash NIST PBKDF2."""
+    u_clean = username.lower().strip()
+    if not u_clean:
+        raise HTTPException(status_code=400, detail="Username tidak boleh kosong.")
+    if len(password) < 5:
+        raise HTTPException(status_code=400, detail="Password minimal 5 karakter.")
+    if u_clean in USER_DATABASE:
+        raise HTTPException(status_code=400, detail=f"Pengguna dengan username '{u_clean}' sudah ada.")
+
+    role_clean = role.lower().strip()
+    if role_clean not in ["admin", "user"]:
+        role_clean = "user"
+
+    p_hash, p_salt = hash_password(password)
+    now_str = time.strftime("%Y-%m-%dT%H:%M:%SZ")
+    USER_DATABASE[u_clean] = {
+        "username": u_clean,
+        "hash": p_hash,
+        "salt": p_salt,
+        "role": role_clean,
+        "name": name.strip() or u_clean,
+        "created_at": now_str
+    }
+    save_user_database_to_disk()
+    return {
+        "username": u_clean,
+        "name": name.strip() or u_clean,
+        "role": role_clean,
+        "created_at": now_str
+    }
+
+def update_user(username: str, name: Optional[str] = None, role: Optional[str] = None, new_password: Optional[str] = None) -> Dict[str, Any]:
+    """Memperbarui profil pengguna atau mereset password."""
+    u_clean = username.lower().strip()
+    if u_clean not in USER_DATABASE:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan.")
+
+    user = USER_DATABASE[u_clean]
+    if name is not None and name.strip():
+        user["name"] = name.strip()
+    if role is not None and role.strip() in ["admin", "user"]:
+        user["role"] = role.strip()
+    if new_password is not None and new_password.strip():
+        if len(new_password.strip()) < 5:
+            raise HTTPException(status_code=400, detail="Password baru minimal 5 karakter.")
+        p_hash, p_salt = hash_password(new_password.strip())
+        user["hash"] = p_hash
+        user["salt"] = p_salt
+
+    save_user_database_to_disk()
+    return {
+        "username": user["username"],
+        "name": user["name"],
+        "role": user["role"],
+        "created_at": user.get("created_at", "-")
+    }
+
+def delete_user(username: str, current_admin_username: Optional[str] = None) -> bool:
+    """Menghapus pengguna dengan proteksi akun aktif sendiri dan minimal 1 admin tersisa."""
+    u_clean = username.lower().strip()
+    if u_clean not in USER_DATABASE:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan.")
+
+    if current_admin_username and u_clean == current_admin_username.lower().strip():
+        raise HTTPException(status_code=400, detail="Tidak dapat menghapus akun admin yang sedang Anda gunakan saat ini.")
+
+    admin_count = sum(1 for u, data in USER_DATABASE.items() if data.get("role") == "admin")
+    if USER_DATABASE[u_clean].get("role") == "admin" and admin_count <= 1:
+        raise HTTPException(status_code=400, detail="Tidak dapat menghapus admin terakhir pada sistem.")
+
+    del USER_DATABASE[u_clean]
+    save_user_database_to_disk()
+    return True
 
 # =============================================================
 # ENGINE KRIPTOGRAFI JWT TOKEN (RFC 7519 Standar Industri)
@@ -189,3 +306,16 @@ async def get_current_user_from_header(authorization: Optional[str] = Header(Non
 
     token = parts[1]
     return verify_jwt_token(token)
+
+async def require_admin_user(authorization: Optional[str] = Header(None)) -> Dict[str, Any]:
+    """
+    Dependency FastAPI khusus untuk memproteksi endpoint administrator.
+    Menjamin pengguna biasa tidak dapat memanggil endpoint admin lewat inspect/cURL (403 Forbidden).
+    """
+    user = await get_current_user_from_header(authorization)
+    if user.get("role") != "admin":
+        raise HTTPException(
+            status_code=403, 
+            detail="⛔ Akses Ditolak: Fitur ini hanya dapat diakses oleh akun System Administrator."
+        )
+    return user

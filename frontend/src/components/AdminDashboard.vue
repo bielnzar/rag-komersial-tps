@@ -98,7 +98,83 @@
           </div>
         </div>
 
-        <!-- TAB 2: API KEYS & STEP-BY-STEP CONFIG -->
+        <!-- TAB 2: FEEDBACK & KEPUASAN PENGGUNA (TUGAS 2.3) -->
+        <div v-if="activeTab === 'feedback'" class="space-y-6 animate-fade-in">
+          <!-- Summary Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-slate-800/50 border border-slate-700/50 p-4 rounded-xl shadow-inner">
+              <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1">Kepuasan Pengguna</p>
+              <h3 class="text-2xl font-bold text-emerald-400">{{ feedbackSummary.satisfaction_rate }}%</h3>
+              <span class="text-[11px] text-slate-500">Persentase respon positif</span>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700/50 p-4 rounded-xl shadow-inner">
+              <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1">Total Respon Masuk</p>
+              <h3 class="text-2xl font-bold text-sky-400">{{ feedbackSummary.total_feedback }}</h3>
+              <span class="text-[11px] text-slate-500">Riwayat tersimpan di DuckDB</span>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700/50 p-4 rounded-xl shadow-inner">
+              <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1">Jawaban Membantu (👍)</p>
+              <h3 class="text-2xl font-bold text-teal-400">{{ feedbackSummary.thumbs_up }}</h3>
+              <span class="text-[11px] text-slate-500">Rating akurat & bermanfaat</span>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700/50 p-4 rounded-xl shadow-inner">
+              <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1">Perlu Evaluasi (👎)</p>
+              <h3 class="text-2xl font-bold text-rose-400">{{ feedbackSummary.thumbs_down }}</h3>
+              <span class="text-[11px] text-slate-500">Kueri/data perlu perbaikan</span>
+            </div>
+          </div>
+
+          <!-- Feedback History Table -->
+          <div class="bg-slate-800/30 border border-slate-700/50 rounded-xl overflow-hidden mt-6">
+            <div class="px-4 py-3 bg-slate-800/80 border-b border-slate-700/50 flex items-center justify-between">
+              <div>
+                <h3 class="text-sm font-semibold text-slate-200">Riwayat Penilaian Pengguna (Tabel: log_user_feedback)</h3>
+                <p class="text-xs text-slate-400">Data evaluasi pengguna langsung untuk audit & peningkatan kualitas respon model.</p>
+              </div>
+              <button @click="fetchFeedbacks" :disabled="isFetchingFeedbacks" class="px-3 py-1 bg-slate-700/60 hover:bg-slate-700 text-xs text-slate-300 rounded-lg border border-slate-600 transition-colors flex items-center gap-1">
+                <span>🔄</span> {{ isFetchingFeedbacks ? 'Memuat...' : 'Segarkan' }}
+              </button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm text-slate-300">
+                <thead class="bg-slate-800/40 text-slate-400 text-xs uppercase">
+                  <tr>
+                    <th class="px-4 py-3">Waktu</th>
+                    <th class="px-4 py-3">User</th>
+                    <th class="px-4 py-3">Rating</th>
+                    <th class="px-4 py-3">Pertanyaan</th>
+                    <th class="px-4 py-3">Catatan / Koreksi</th>
+                    <th class="px-4 py-3">SQL Terkait</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-700/50">
+                  <tr v-for="(fb, i) in feedbackLogs" :key="fb.id || i" class="hover:bg-slate-700/20">
+                    <td class="px-4 py-2 font-mono text-xs whitespace-nowrap text-slate-400">{{ new Date(fb.timestamp).toLocaleString() }}</td>
+                    <td class="px-4 py-2 font-mono text-xs text-slate-300">{{ fb.user_id || 'Anonim' }}</td>
+                    <td class="px-4 py-2 whitespace-nowrap">
+                      <span v-if="fb.rating === 'THUMBS_UP'" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <span>👍</span> Membantu
+                      </span>
+                      <span v-else class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                        <span>👎</span> Kurang
+                      </span>
+                    </td>
+                    <td class="px-4 py-2 text-xs text-slate-100 max-w-xs truncate" :title="fb.query">{{ fb.query }}</td>
+                    <td class="px-4 py-2 text-xs text-amber-300/90 max-w-xs truncate" :title="fb.feedback_note">{{ fb.feedback_note || '-' }}</td>
+                    <td class="px-4 py-2 font-mono text-[11px] text-teal-300 max-w-xs truncate" :title="fb.sql_executed">{{ fb.sql_executed || '-' }}</td>
+                  </tr>
+                  <tr v-if="feedbackLogs.length === 0">
+                    <td colspan="6" class="px-4 py-8 text-center text-slate-500 text-xs">
+                      Belum ada data evaluasi dari pengguna. Berikan rating pada pesan chat untuk melihat riwayat di sini.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: API KEYS & STEP-BY-STEP CONFIG -->
         <div v-if="activeTab === 'keys'" class="space-y-6 animate-fade-in">
           <!-- KARTU KONFIGURASI MANDIRI PER-STEP -->
           <div class="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-teal-500/30 rounded-2xl p-6 shadow-2xl backdrop-blur-md mb-6">
@@ -563,6 +639,15 @@
             </div>
             <div class="flex items-center gap-3">
               <button 
+                @click="runClearCache" 
+                :disabled="isClearingCache"
+                class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 disabled:opacity-50 text-slate-200 hover:text-white font-semibold text-xs rounded-xl shadow transition-all flex items-center gap-2 cursor-pointer"
+                title="Hapus cache memori semantik agar AI menghasilkan jawaban baru langsung dari database"
+              >
+                <span v-if="isClearingCache" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                <span>{{ isClearingCache ? 'Membersihkan...' : '🧹 Reset Semantic Cache' }}</span>
+              </button>
+              <button 
                 @click="runReEtl" 
                 :disabled="isRunningEtl"
                 class="px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-lg transition-all flex items-center gap-2"
@@ -596,6 +681,124 @@
                 <h3 class="text-lg font-bold text-teal-400 font-mono">{{ count.toLocaleString() }} Rows</h3>
               </div>
               <p class="text-[10px] text-slate-500 mt-2">Klik untuk melihat skema kolom & 20 baris pertama</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 5: MANAJEMEN USER -->
+        <div v-if="activeTab === 'users'" class="space-y-6 animate-fade-in">
+          <!-- Header Action Bar -->
+          <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <Users class="w-5 h-5 text-teal-400" />
+                Manajemen Pengguna Internal
+              </h3>
+              <p class="text-xs text-slate-400 mt-1">
+                Kelola akun pengguna internal (role <span class="text-amber-400 font-semibold">admin</span> & <span class="text-teal-400 font-semibold">user</span>), reset kata sandi, dan proteksi hak akses.
+              </p>
+            </div>
+            <button 
+              @click="openCreateModal"
+              class="px-4 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-teal-500/20 transition-all flex items-center gap-2 shrink-0"
+            >
+              <span>+ Tambah Pengguna Baru</span>
+            </button>
+          </div>
+
+          <!-- Alert Message (success or error) -->
+          <div v-if="userActionMessage.text" :class="['p-3.5 rounded-xl border text-xs flex items-center justify-between gap-2', userActionMessage.isError ? 'bg-red-950/50 border-red-800/60 text-red-200' : 'bg-emerald-950/50 border-emerald-800/60 text-emerald-200']">
+            <span>{{ userActionMessage.text }}</span>
+            <button @click="userActionMessage.text = ''" class="text-slate-400 hover:text-white text-xs">✕</button>
+          </div>
+
+          <!-- Users Table Card -->
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-200 uppercase tracking-wider">Daftar Akun Terdaftar</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-400 border border-slate-700">
+                  {{ usersList.length }} Akun
+                </span>
+              </div>
+              <button 
+                @click="fetchUsers" 
+                :disabled="isLoadingUsers"
+                class="px-3 py-1 bg-slate-800/80 hover:bg-slate-800 text-xs text-slate-300 rounded-lg border border-slate-700 transition-colors flex items-center gap-1.5"
+              >
+                <span :class="isLoadingUsers ? 'animate-spin' : ''">🔄</span>
+                <span>{{ isLoadingUsers ? 'Memuat...' : 'Segarkan' }}</span>
+              </button>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950/60 text-slate-400 uppercase font-semibold text-[11px] border-b border-slate-800">
+                  <tr>
+                    <th class="px-5 py-3.5">No</th>
+                    <th class="px-5 py-3.5">Username</th>
+                    <th class="px-5 py-3.5">Nama Lengkap</th>
+                    <th class="px-5 py-3.5">Role Akses</th>
+                    <th class="px-5 py-3.5">Dibuat Pada</th>
+                    <th class="px-5 py-3.5 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                  <tr v-for="(u, idx) in usersList" :key="u.username" class="hover:bg-slate-800/30 transition-colors">
+                    <td class="px-5 py-3.5 text-slate-500 font-mono">{{ idx + 1 }}</td>
+                    <td class="px-5 py-3.5 font-mono font-bold text-slate-100">
+                      <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300">
+                          <User class="w-3.5 h-3.5" />
+                        </div>
+                        <span>{{ u.username }}</span>
+                        <span v-if="u.username === currentAdminUsername" class="px-1.5 py-0.5 rounded text-[9px] bg-teal-500/20 text-teal-300 border border-teal-500/40 font-sans font-bold">
+                          Anda
+                        </span>
+                      </div>
+                    </td>
+                    <td class="px-5 py-3.5 text-slate-200 font-medium">{{ u.name }}</td>
+                    <td class="px-5 py-3.5">
+                      <span :class="[
+                        'px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border',
+                        u.role === 'admin' 
+                          ? 'bg-amber-950/60 text-amber-400 border-amber-800/60' 
+                          : 'bg-cyan-950/60 text-cyan-400 border-cyan-800/60'
+                      ]">
+                        {{ u.role === 'admin' ? '🛡️ System Admin' : '👤 AI User' }}
+                      </span>
+                    </td>
+                    <td class="px-5 py-3.5 text-slate-400 font-mono">{{ u.created_at || '-' }}</td>
+                    <td class="px-5 py-3.5 text-right">
+                      <div class="inline-flex items-center gap-1.5">
+                        <button 
+                          @click="openEditModal(u)" 
+                          class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center gap-1 text-[11px] font-medium"
+                          title="Ubah data atau reset password"
+                        >
+                          <Pencil class="w-3 h-3 text-slate-400" />
+                          <span>Edit</span>
+                        </button>
+                        <button 
+                          @click="confirmDeleteUser(u)" 
+                          :disabled="u.username === currentAdminUsername || u.username === 'admin'"
+                          class="px-2.5 py-1 rounded-lg bg-red-950/30 hover:bg-red-900/40 text-red-300 border border-red-900/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1 text-[11px] font-medium"
+                          :title="u.username === currentAdminUsername ? 'Tidak dapat menghapus akun Anda sendiri' : 'Hapus akun pengguna'"
+                        >
+                          <svg class="w-3 h-3 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                          <span>Hapus</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr v-if="usersList.length === 0 && !isLoadingUsers">
+                    <td colspan="6" class="px-5 py-8 text-center text-slate-500 italic">
+                      Belum ada pengguna terdaftar atau gagal memuat data.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -684,10 +887,198 @@
       </div>
     </div>
   </div>
+
+  <!-- MODAL: TAMBAH PENGGUNA BARU -->
+  <div v-if="createUserModal.isOpen" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl overflow-hidden relative">
+      <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <Users class="w-4 h-4 text-teal-400" />
+          Tambah Pengguna Baru
+        </h3>
+        <button @click="createUserModal.isOpen = false" class="text-slate-400 hover:text-white text-sm font-bold">✕</button>
+      </div>
+
+      <div v-if="createUserModal.error" class="mb-4 p-3 rounded-xl bg-red-950/60 border border-red-800/60 text-red-200 text-xs flex items-center gap-2">
+        <AlertCircle class="w-4 h-4 text-red-400 shrink-0" />
+        <span>{{ createUserModal.error }}</span>
+      </div>
+
+      <form @submit.prevent="submitCreateUser" class="space-y-3.5">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-300 mb-1">Username Pengguna</label>
+          <input 
+            type="text" 
+            v-model="createUserModal.form.username" 
+            required 
+            placeholder="misal: ahmad_komersial" 
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-teal-500"
+          />
+          <span class="text-[10px] text-slate-500">Huruf kecil, angka, garis bawah (min 3 karakter).</span>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-300 mb-1">Nama Lengkap</label>
+          <input 
+            type="text" 
+            v-model="createUserModal.form.name" 
+            required 
+            placeholder="misal: Ahmad Fauzi" 
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-teal-500"
+          />
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-300 mb-1">Peran Akses (Role)</label>
+          <select 
+            v-model="createUserModal.form.role" 
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-teal-500"
+          >
+            <option value="user">User (Akses Chat & Analisis Data AI)</option>
+            <option value="admin">Admin (Akses Penuh Portal & Konfigurasi)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-300 mb-1">Kata Sandi (Password)</label>
+          <input 
+            type="password" 
+            v-model="createUserModal.form.password" 
+            required 
+            placeholder="Minimal 6 karakter" 
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-teal-500"
+          />
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800 mt-4">
+          <button 
+            type="button" 
+            @click="createUserModal.isOpen = false" 
+            class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-colors"
+          >
+            Batal
+          </button>
+          <button 
+            type="submit" 
+            :disabled="createUserModal.isSubmitting" 
+            class="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-bold rounded-xl transition-all disabled:opacity-50 flex items-center gap-1.5"
+          >
+            <Loader2 v-if="createUserModal.isSubmitting" class="w-3.5 h-3.5 animate-spin" />
+            <span>{{ createUserModal.isSubmitting ? 'Menyimpan...' : 'Simpan Pengguna' }}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT PENGGUNA & RESET PASSWORD -->
+  <div v-if="editUserModal.isOpen" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl overflow-hidden relative">
+      <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <Pencil class="w-4 h-4 text-amber-400" />
+          Edit Pengguna: <span class="font-mono text-teal-400">{{ editUserModal.form.username }}</span>
+        </h3>
+        <button @click="editUserModal.isOpen = false" class="text-slate-400 hover:text-white text-sm font-bold">✕</button>
+      </div>
+
+      <div v-if="editUserModal.error" class="mb-4 p-3 rounded-xl bg-red-950/60 border border-red-800/60 text-red-200 text-xs flex items-center gap-2">
+        <AlertCircle class="w-4 h-4 text-red-400 shrink-0" />
+        <span>{{ editUserModal.error }}</span>
+      </div>
+
+      <form @submit.prevent="submitEditUser" class="space-y-3.5">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-300 mb-1">Nama Lengkap</label>
+          <input 
+            type="text" 
+            v-model="editUserModal.form.name" 
+            required 
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
+          />
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-300 mb-1">Peran Akses (Role)</label>
+          <select 
+            v-model="editUserModal.form.role" 
+            :disabled="editUserModal.form.username === currentAdminUsername"
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500 disabled:opacity-50"
+          >
+            <option value="user">User (Akses Chat & Analisis Data AI)</option>
+            <option value="admin">Admin (Akses Penuh Portal & Konfigurasi)</option>
+          </select>
+          <span v-if="editUserModal.form.username === currentAdminUsername" class="text-[10px] text-slate-500">
+            Anda tidak dapat mengubah peran akun yang sedang aktif digunakan.
+          </span>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-300 mb-1">Reset Kata Sandi (Opsional)</label>
+          <input 
+            type="password" 
+            v-model="editUserModal.form.password" 
+            placeholder="Kosongkan jika tidak ingin mengubah sandi" 
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-amber-500"
+          />
+          <span class="text-[10px] text-slate-500">Isi hanya jika ingin mereset kata sandi (min 6 karakter).</span>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800 mt-4">
+          <button 
+            type="button" 
+            @click="editUserModal.isOpen = false" 
+            class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-colors"
+          >
+            Batal
+          </button>
+          <button 
+            type="submit" 
+            :disabled="editUserModal.isSubmitting" 
+            class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl transition-all disabled:opacity-50 flex items-center gap-1.5"
+          >
+            <Loader2 v-if="editUserModal.isSubmitting" class="w-3.5 h-3.5 animate-spin" />
+            <span>{{ editUserModal.isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: KONFIRMASI HAPUS PENGGUNA -->
+  <div v-if="deleteModal.isOpen" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center">
+      <div class="w-12 h-12 rounded-full bg-red-950/60 border border-red-800/60 flex items-center justify-center mx-auto mb-4 text-red-400">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+      </div>
+      <h3 class="text-sm font-bold text-white mb-1">Hapus Pengguna</h3>
+      <p class="text-xs text-slate-400 mb-5">
+        Apakah Anda yakin ingin menghapus akun <span class="text-red-400 font-mono font-bold">{{ deleteModal.username }}</span>? Tindakan ini tidak dapat dibatalkan.
+      </p>
+
+      <div class="flex items-center justify-center gap-2">
+        <button 
+          @click="deleteModal.isOpen = false" 
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-colors"
+        >
+          Batal
+        </button>
+        <button 
+          @click="executeDeleteUser" 
+          :disabled="deleteModal.isSubmitting" 
+          class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-xl transition-all disabled:opacity-50 flex items-center gap-1.5"
+        >
+          <Loader2 v-if="deleteModal.isSubmitting" class="w-3.5 h-3.5 animate-spin" />
+          <span>{{ deleteModal.isSubmitting ? 'Menghapus...' : 'Ya, Hapus' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { Users, Pencil, KeyRound, User, ShieldCheck, AlertCircle, Loader2 } from './Icons.js';
 
 const countdown = ref(3);
 let pollTimer = null;
@@ -700,12 +1091,17 @@ const activeTab = ref('telemetry');
 
 const tabs = [
   { id: 'telemetry', name: 'Telemetri & Log Audit' },
+  { id: 'feedback', name: 'Feedback Pengguna' },
   { id: 'keys', name: 'Kredensial API Keys' },
-  { id: 'health', name: 'Kesehatan System' }
+  { id: 'health', name: 'Kesehatan System' },
+  { id: 'users', name: 'Manajemen User' }
 ];
 
 const metrics = ref({ gemini_tokens: 0, groq_tokens: 0, avg_latency_ms: 0, success_rate: 0, total_requests: 0 });
 const recentLogs = ref([]);
+const feedbackSummary = ref({ total_feedback: 0, thumbs_up: 0, thumbs_down: 0, satisfaction_rate: 0 });
+const feedbackLogs = ref([]);
+const isFetchingFeedbacks = ref(false);
 const health = ref({ tables: {} });
 const apiKeys = ref({ google_gemini: [], groq: [] });
 const isSavingKeys = ref(false);
@@ -833,6 +1229,29 @@ const runReEtl = async () => {
   }
 };
 
+const isClearingCache = ref(false);
+const runClearCache = async () => {
+  if (!confirm('Apakah Anda yakin ingin membersihkan seluruh Semantic Cache? Kueri berikutnya akan langsung memproses dari AI dan database fresh.')) return;
+  isClearingCache.value = true;
+  try {
+    const token = localStorage.getItem('tps_admin_token') || localStorage.getItem('tps_token');
+    const res = await fetch('/api/v1/cache', {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+      alert('✅ ' + data.message);
+    } else {
+      alert('❌ Gagal: ' + (data.detail || 'Error server'));
+    }
+  } catch (e) {
+    alert('❌ Terjadi kesalahan jaringan saat membersihkan cache');
+  } finally {
+    isClearingCache.value = false;
+  }
+};
+
 const previewModal = ref({ isOpen: false, tableName: '', columns: [], sampleRows: [], isLoading: false });
 
 const inspectTable = async (tableName) => {
@@ -894,13 +1313,200 @@ const fetchKeys = async () => {
   }
 };
 
+const fetchFeedbacks = async () => {
+  try {
+    isFetchingFeedbacks.value = true;
+    const token = localStorage.getItem('tps_admin_token') || localStorage.getItem('tps_token');
+    const res = await fetch('/api/v1/admin/feedbacks', { headers: { 'Authorization': `Bearer ${token}` } });
+    const data = await res.json();
+    if (data.status === 'success') {
+      feedbackSummary.value = data.summary;
+      feedbackLogs.value = data.feedbacks;
+    }
+  } catch (e) {
+    console.error("Gagal mengambil riwayat feedback:", e);
+  } finally {
+    isFetchingFeedbacks.value = false;
+  }
+};
+
 const fetchData = async () => {
   await Promise.all([
     fetchMetrics(),
+    fetchFeedbacks(),
     fetchHealth(),
     fetchKeys(),
-    fetchStepConfigs()
+    fetchStepConfigs(),
+    fetchUsers()
   ]);
+};
+
+// ==========================================
+// USER MANAGEMENT STATE & HANDLERS
+// ==========================================
+const usersList = ref([]);
+const isLoadingUsers = ref(false);
+const currentAdminUsername = ref('');
+const userActionMessage = ref({ text: '', isError: false });
+
+const createUserModal = ref({
+  isOpen: false,
+  isSubmitting: false,
+  error: '',
+  form: { username: '', name: '', role: 'user', password: '' }
+});
+
+const editUserModal = ref({
+  isOpen: false,
+  isSubmitting: false,
+  error: '',
+  form: { username: '', name: '', role: 'user', password: '' }
+});
+
+const deleteModal = ref({
+  isOpen: false,
+  isSubmitting: false,
+  username: ''
+});
+
+const fetchUsers = async () => {
+  isLoadingUsers.value = true;
+  try {
+    const token = localStorage.getItem('tps_admin_token') || localStorage.getItem('tps_token');
+    const res = await fetch('/api/v1/admin/users', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (res.ok && data.status === 'success') {
+      usersList.value = data.users || [];
+    } else {
+      console.error('Gagal mengambil daftar user:', data.detail);
+    }
+  } catch (e) {
+    console.error('Network error fetchUsers:', e);
+  } finally {
+    isLoadingUsers.value = false;
+  }
+};
+
+const openCreateModal = () => {
+  createUserModal.value = {
+    isOpen: true,
+    isSubmitting: false,
+    error: '',
+    form: { username: '', name: '', role: 'user', password: '' }
+  };
+};
+
+const submitCreateUser = async () => {
+  createUserModal.value.error = '';
+  createUserModal.value.isSubmitting = true;
+  try {
+    const token = localStorage.getItem('tps_admin_token') || localStorage.getItem('tps_token');
+    const res = await fetch('/api/v1/admin/users', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(createUserModal.value.form)
+    });
+    const data = await res.json();
+    if (res.ok && data.status === 'success') {
+      createUserModal.value.isOpen = false;
+      userActionMessage.value = { text: '✅ ' + data.message, isError: false };
+      await fetchUsers();
+    } else {
+      createUserModal.value.error = data.detail || 'Gagal menambahkan pengguna.';
+    }
+  } catch (e) {
+    createUserModal.value.error = 'Kesalahan koneksi ke server.';
+  } finally {
+    createUserModal.value.isSubmitting = false;
+  }
+};
+
+const openEditModal = (user) => {
+  editUserModal.value = {
+    isOpen: true,
+    isSubmitting: false,
+    error: '',
+    form: {
+      username: user.username,
+      name: user.name,
+      role: user.role,
+      password: ''
+    }
+  };
+};
+
+const submitEditUser = async () => {
+  editUserModal.value.error = '';
+  editUserModal.value.isSubmitting = true;
+  try {
+    const token = localStorage.getItem('tps_admin_token') || localStorage.getItem('tps_token');
+    const payload = {
+      name: editUserModal.value.form.name,
+      role: editUserModal.value.form.role
+    };
+    if (editUserModal.value.form.password && editUserModal.value.form.password.trim() !== '') {
+      payload.password = editUserModal.value.form.password;
+    }
+
+    const res = await fetch(`/api/v1/admin/users/${encodeURIComponent(editUserModal.value.form.username)}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (res.ok && data.status === 'success') {
+      editUserModal.value.isOpen = false;
+      userActionMessage.value = { text: '✅ ' + data.message, isError: false };
+      await fetchUsers();
+    } else {
+      editUserModal.value.error = data.detail || 'Gagal memperbarui pengguna.';
+    }
+  } catch (e) {
+    editUserModal.value.error = 'Kesalahan koneksi ke server.';
+  } finally {
+    editUserModal.value.isSubmitting = false;
+  }
+};
+
+const confirmDeleteUser = (user) => {
+  deleteModal.value = {
+    isOpen: true,
+    isSubmitting: false,
+    username: user.username
+  };
+};
+
+const executeDeleteUser = async () => {
+  deleteModal.value.isSubmitting = true;
+  try {
+    const token = localStorage.getItem('tps_admin_token') || localStorage.getItem('tps_token');
+    const res = await fetch(`/api/v1/admin/users/${encodeURIComponent(deleteModal.value.username)}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (res.ok && data.status === 'success') {
+      deleteModal.value.isOpen = false;
+      userActionMessage.value = { text: '✅ ' + data.message, isError: false };
+      await fetchUsers();
+    } else {
+      alert('❌ ' + (data.detail || 'Gagal menghapus pengguna.'));
+      deleteModal.value.isOpen = false;
+    }
+  } catch (e) {
+    alert('❌ Terjadi kesalahan jaringan saat menghapus pengguna.');
+    deleteModal.value.isOpen = false;
+  } finally {
+    deleteModal.value.isSubmitting = false;
+  }
 };
 
 const setActiveKey = (provider, index) => {
@@ -958,6 +1564,13 @@ const saveApiKeys = async () => {
 // Polling 3 detik hanya mengambil data live metrics/telemetri latar belakang.
 // Tidak akan pernah menimpa form ketikan input stepConfigs atau apiKeys!
 onMounted(() => {
+  const adminUserStr = localStorage.getItem('tps_admin_user') || localStorage.getItem('tps_user');
+  if (adminUserStr) {
+    try {
+      const parsed = JSON.parse(adminUserStr);
+      currentAdminUsername.value = parsed.username || '';
+    } catch (e) {}
+  }
   fetchData();
   pollTimer = setInterval(() => {
     countdown.value--;
