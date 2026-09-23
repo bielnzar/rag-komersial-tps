@@ -1,21 +1,21 @@
 <template>
-  <div v-if="chartConfig && Object.keys(chartConfig).length > 0" class="mt-4 card-executive p-4 sm:p-5 rounded-2xl border border-slate-800">
+  <div v-if="chartConfig && Object.keys(chartConfig).length > 0" class="mt-4 bg-[#0a1122] p-4 sm:p-5 rounded-xl border border-slate-800/90 shadow-card">
     <!-- Header Controls -->
     <div class="flex items-center justify-between mb-3.5 pb-2.5 border-b border-slate-800/80">
       <div class="flex items-center gap-2">
-        <BarChart3 class="w-4 h-4 text-teal-400" />
-        <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider">
-          {{ chartConfig.title?.text || 'Visualisasi Grafik ECharts' }}
+        <BarChart3 class="w-4 h-4 text-sky-400" />
+        <h4 class="text-xs font-semibold text-slate-200 tracking-wide">
+          {{ chartConfig.title?.text || 'Visualisasi Analitik ECharts' }}
         </h4>
       </div>
       <div class="flex items-center gap-2">
         <button
           v-if="chartInstance"
           @click="downloadImage"
-          class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-medium text-slate-300 transition-colors border border-slate-700"
+          class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900 hover:bg-slate-800 text-[11px] font-medium text-slate-300 hover:text-white transition-colors border border-slate-800"
           title="Unduh Grafik sebagai Gambar"
         >
-          <Download class="w-3.5 h-3.5 text-teal-400" />
+          <Download class="w-3.5 h-3.5 text-slate-400" />
           <span>Export PNG</span>
         </button>
       </div>

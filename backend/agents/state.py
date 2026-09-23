@@ -15,5 +15,5 @@ class AgentState(TypedDict):
     echarts_config: Optional[dict]   # Konfigurasi JSON untuk Apache ECharts
     force_chart: Optional[bool]      # Flag khusus jika user meminta grafik (On-Demand Chart)
     chat_history: Optional[List[dict]] # Riwayat percakapan sebelumnya dari Redis (Multi-Turn Memory)
-    role: Optional[str]              # Peran pengguna untuk RBAC (executive, commercial, operation, guest)
+    role: Optional[str]              # Peran pengguna (admin, user)
     suggestions: Optional[List[str]] # Rekomendasi kueri interaktif saat DATA_EMPTY (Tugas 2.4)

@@ -5,10 +5,10 @@
       <!-- Tombol 1: Buka/Tutup Tabel -->
       <button
         @click="isOpen = !isOpen"
-        class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-850 border border-slate-800 text-xs font-medium text-slate-300 transition-colors cursor-pointer"
+        class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0e172a] hover:bg-[#131f38] border border-slate-800 text-xs font-medium text-slate-300 transition-colors cursor-pointer"
       >
-        <Table class="w-3.5 h-3.5 text-teal-400" />
-        <span>Tabel Data Mentah DuckDB ({{ data.length }} Baris)</span>
+        <Table class="w-3.5 h-3.5 text-sky-400" />
+        <span>Tabel Data DuckDB ({{ data.length }} Baris)</span>
         <ChevronRight class="w-3.5 h-3.5 transition-transform duration-200" :class="{ 'rotate-90': isOpen }" />
       </button>
 
@@ -16,9 +16,9 @@
       <div class="relative" ref="dropdownRef">
         <button
           @click="isDropdownOpen = !isDropdownOpen"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-xs font-medium text-teal-300 transition-all cursor-pointer shadow-sm hover:border-teal-500/50"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0e172a] hover:bg-[#131f38] border border-slate-750 text-xs font-medium text-slate-300 hover:text-white transition-all cursor-pointer shadow-sm hover:border-slate-600"
         >
-          <Download class="w-3.5 h-3.5 text-teal-400" />
+          <Download class="w-3.5 h-3.5 text-slate-400" />
           <span>Ekspor Data</span>
           <ChevronDown class="w-3 h-3 text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': isDropdownOpen }" />
         </button>
@@ -26,17 +26,17 @@
         <!-- Menu Dropdown Ekspor Popover -->
         <div
           v-if="isDropdownOpen"
-          class="absolute left-0 mt-1.5 w-64 rounded-xl bg-slate-900/95 border border-slate-700/90 shadow-2xl p-1.5 z-30 backdrop-blur-md animate-fade-in divide-y divide-slate-800/60"
+          class="absolute left-0 mt-1.5 w-64 rounded-xl bg-[#0e172a] border border-slate-700/80 shadow-modal p-1.5 z-30 divide-y divide-slate-800/80"
         >
           <div class="p-1 space-y-1">
             <!-- Opsi 1: Unduh Excel -->
             <button
               @click="downloadExcel"
-              class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left text-xs text-slate-200 hover:bg-slate-800/90 hover:text-teal-300 transition-colors cursor-pointer group"
+              class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left text-xs text-slate-200 hover:bg-[#162444] hover:text-sky-300 transition-colors cursor-pointer group"
             >
-              <FileSpreadsheet class="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+              <FileSpreadsheet class="w-4 h-4 text-emerald-400" />
               <div>
-                <div class="font-semibold">Unduh Excel (.xls)</div>
+                <div class="font-medium">Unduh Excel (.xls)</div>
                 <div class="text-[10px] text-slate-400">Workbook terformat rapi siap pakai</div>
               </div>
             </button>
@@ -44,11 +44,11 @@
             <!-- Opsi 2: Unduh CSV -->
             <button
               @click="downloadCSV"
-              class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left text-xs text-slate-200 hover:bg-slate-800/90 hover:text-teal-300 transition-colors cursor-pointer group"
+              class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left text-xs text-slate-200 hover:bg-[#162444] hover:text-sky-300 transition-colors cursor-pointer group"
             >
-              <FileText class="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+              <FileText class="w-4 h-4 text-sky-400" />
               <div>
-                <div class="font-semibold">Unduh CSV (.csv)</div>
+                <div class="font-medium">Unduh CSV (.csv)</div>
                 <div class="text-[10px] text-slate-400">Standar tabular UTF-8 BOM untuk Excel & BI</div>
               </div>
             </button>
@@ -58,11 +58,11 @@
             <!-- Opsi 3: Salin ke Clipboard -->
             <button
               @click="copyTableTSV"
-              class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left text-xs text-slate-200 hover:bg-slate-800/90 hover:text-teal-300 transition-colors cursor-pointer group"
+              class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left text-xs text-slate-200 hover:bg-[#162444] hover:text-sky-300 transition-colors cursor-pointer group"
             >
-              <Copy class="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+              <Copy class="w-4 h-4 text-amber-400" />
               <div>
-                <div class="font-semibold">Salin Tabel (TSV)</div>
+                <div class="font-medium">Salin Tabel (TSV)</div>
                 <div class="text-[10px] text-slate-400">Siap paste langsung ke Excel (Ctrl+V)</div>
               </div>
             </button>
@@ -70,11 +70,11 @@
             <!-- Opsi 4: Cetak / Simpan PDF Laporan -->
             <button
               @click="printReportPDF"
-              class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left text-xs text-slate-200 hover:bg-slate-800/90 hover:text-teal-300 transition-colors cursor-pointer group"
+              class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left text-xs text-slate-200 hover:bg-[#162444] hover:text-sky-300 transition-colors cursor-pointer group"
             >
-              <Printer class="w-4 h-4 text-rose-400 group-hover:scale-110 transition-transform" />
+              <Printer class="w-4 h-4 text-slate-400" />
               <div>
-                <div class="font-semibold">Cetak / Simpan PDF</div>
+                <div class="font-medium">Cetak / Simpan PDF</div>
                 <div class="text-[10px] text-slate-400">Laporan formal A4 narasi & tabel</div>
               </div>
             </button>
@@ -84,24 +84,24 @@
 
       <!-- Feedback Indikator Salin -->
       <transition
-        enter-active-class="transition duration-200 ease-out"
+        enter-active-class="transition duration-150 ease-out"
         enter-from-class="opacity-0 translate-y-1"
         enter-to-class="opacity-100 translate-y-0"
-        leave-active-class="transition duration-150 ease-in"
+        leave-active-class="transition duration-100 ease-in"
         leave-from-class="opacity-100"
         leave-to-class="opacity-0"
       >
-        <span v-if="copiedMessage" class="text-[11px] text-teal-400 font-mono flex items-center gap-1 bg-teal-950/80 px-2 py-0.5 rounded border border-teal-800/60">
-          <Check class="w-3 h-3 text-teal-400" />
+        <span v-if="copiedMessage" class="text-[11px] text-sky-300 font-mono flex items-center gap-1 bg-sky-950/80 px-2 py-0.5 rounded border border-sky-800/60">
+          <Check class="w-3 h-3 text-sky-400" />
           {{ copiedMessage }}
         </span>
       </transition>
     </div>
 
     <!-- Tampilan Tabel Collapsible -->
-    <div v-show="isOpen" class="mt-2.5 card-executive rounded-xl overflow-hidden border border-slate-800">
+    <div v-show="isOpen" class="mt-2.5 bg-[#0a1122] rounded-xl overflow-hidden border border-slate-800/90 shadow-card">
       <!-- Toolbar Filter Cepat dalam Tabel -->
-      <div v-if="data.length > 5" class="p-2.5 bg-slate-950/50 border-b border-slate-800 flex items-center justify-between gap-2">
+      <div v-if="data.length > 5" class="p-2.5 bg-[#080d1a] border-b border-slate-800 flex items-center justify-between gap-2">
         <span class="text-[11px] text-slate-400 font-mono">
           Menampilkan {{ filteredData.length }} dari {{ data.length }} baris data
         </span>
@@ -109,7 +109,7 @@
           v-model="searchQuery"
           type="text"
           placeholder="Filter data dalam tabel..."
-          class="px-2.5 py-1 text-xs bg-slate-900 border border-slate-800 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-teal-500/70 w-44 sm:w-56"
+          class="px-2.5 py-1 text-xs bg-[#0e172a] border border-slate-800 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500/70 w-44 sm:w-56"
         />
       </div>
 
@@ -117,17 +117,17 @@
       <div class="max-h-72 overflow-x-auto overflow-y-auto">
         <table class="w-full text-left border-collapse text-xs">
           <thead>
-            <tr class="bg-slate-900/90 text-teal-300 font-mono border-b border-slate-800 sticky top-0 z-10">
-              <th v-for="col in headers" :key="col" class="px-4 py-2.5 font-semibold whitespace-nowrap">
+            <tr class="bg-[#0e172a] text-slate-300 font-mono border-b border-slate-800 sticky top-0 z-10 text-[11px] tracking-wide uppercase font-semibold">
+              <th v-for="col in headers" :key="col" class="px-4 py-2.5 whitespace-nowrap">
                 {{ col }}
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-800/50 text-slate-300 font-mono">
+          <tbody class="divide-y divide-slate-800/60 text-slate-300 font-mono">
             <tr
               v-for="(row, idx) in filteredData"
               :key="idx"
-              class="hover:bg-slate-900/40 transition-colors"
+              class="hover:bg-[#121c32] transition-colors"
             >
               <td v-for="col in headers" :key="col" class="px-4 py-2 whitespace-nowrap">
                 <span v-if="row[col] === null || row[col] === undefined" class="text-slate-600 italic">null</span>

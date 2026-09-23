@@ -44,12 +44,12 @@ flowchart TD
 ## 📌 TUGAS 1.1: Memperbaiki Bug Pre-Flight Guard pada Pertanyaan Lanjutan (Multi-Turn)
 
 ### A. Deskripsi Masalah & Dampak
-* **Berkas Terkait:** [`backend/main.py:L201-L232`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/main.py#L201-L232)
+* **Berkas Terkait:** [`backend/main.py:L201-L232`](../backend/main.py#L201-L232)
 * **Masalah:** Fungsi `check_query_specificity(request.query)` dijalankan **sebelum** riwayat percakapan (`session_history`) dicek. Fungsi ini menolak kueri yang tidak mengandung metrik bisnis (`VALID_METRIC_KEYWORDS`).
 * **Akibat Buruk:** Jika user bertanya *"Berapa throughput internasional 2024?"* lalu melanjutkan dengan *"Bagaimana dengan 2025?"* atau *"Kalau domestik?"*, pertanyaan kedua ditolak mentah-mentah dengan pesan error *"⚠️ Pertanyaan Kurang Spesifik"*. Fitur multi-turn yang sudah dirancang di `sql_gen.py` dan `router.py` menjadi lumpuh total.
 
 ### B. Langkah Realisasi Kode
-Buka berkas [`backend/main.py`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/main.py). Pindahkan pengambilan `session_history` dan deteksi pertanyaan lanjutan ke atas sebelum `check_query_specificity()`.
+Buka berkas [`backend/main.py`](../backend/main.py). Pindahkan pengambilan `session_history` dan deteksi pertanyaan lanjutan ke atas sebelum `check_query_specificity()`.
 
 ```python
 # ==============================================================================
@@ -117,14 +117,14 @@ else:
 
 ### A. Deskripsi Masalah & Dampak
 * **Berkas Terkait:**  
-  - [`backend/agents/viz_gen.py:L98`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/agents/viz_gen.py#L98)
-  - [`backend/agents/chart_gen.py:L61`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/agents/chart_gen.py#L61)
+  - [`backend/agents/viz_gen.py:L98`](../backend/agents/viz_gen.py#L98)
+  - [`backend/agents/chart_gen.py:L61`](../backend/agents/chart_gen.py#L61)
 * **Masalah:** Di proposal dan `TECHNICAL_MASTER_BRIEF.md`, Anda menyatakan sistem menerapkan *Smart Row Sampling* maksimal 15 baris sampel untuk menghemat token hingga 80%. Namun di kode aktual tertulis:
   `data_str = format_data_compact(query_result, max_rows=50)`.
 * **Akibat Buruk:** Token input ke LLM Groq membengkak hingga 3,3x lipat. Jika diuji saat sidang skripsi, terdapat kontradiksi antara implementasi nyata dengan metodologi tertulis.
 
 ### B. Langkah Realisasi Kode
-Buka [`backend/agents/viz_gen.py`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/agents/viz_gen.py#L98) dan ubah nilai parameter:
+Buka [`backend/agents/viz_gen.py`](../backend/agents/viz_gen.py#L98) dan ubah nilai parameter:
 
 ```python
 # SEBELUM:
@@ -134,7 +134,7 @@ data_str = format_data_compact(query_result, max_rows=50)
 data_str = format_data_compact(query_result, max_rows=15)
 ```
 
-Lakukan hal serupa pada [`backend/agents/chart_gen.py`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/agents/chart_gen.py#L61):
+Lakukan hal serupa pada [`backend/agents/chart_gen.py`](../backend/agents/chart_gen.py#L61):
 ```python
 # SEBELUM:
 data_str = format_data_compact(query_result, max_rows=50)
@@ -160,12 +160,12 @@ data_str = format_data_compact(query_result, max_rows=15)
 ## 📌 TUGAS 1.3: Memperbaiki Label Badge UI Usang "Self-Healing Active"
 
 ### A. Deskripsi Masalah & Dampak
-* **Berkas Terkait:** [`frontend/src/components/ChatMessage.vue:L31-L33`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/frontend/src/components/ChatMessage.vue#L31-L33)
+* **Berkas Terkait:** [`frontend/src/components/ChatMessage.vue:L31-L33`](../frontend/src/components/ChatMessage.vue#L31-L33)
 * **Masalah:** Badge UI menampilkan teks statis: `<span ...>Self-Healing Active</span>`. Padahal backend sudah 100% beralih ke paradigma **Fail-Fast Single Pass (0 Retry)**.
 * **Akibat Buruk:** Klaim palsu di antarmuka pengguna yang berisiko digugurkan penguji saat evaluasi sistem.
 
 ### B. Langkah Realisasi Kode
-Buka [`frontend/src/components/ChatMessage.vue`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/frontend/src/components/ChatMessage.vue#L31-L33) dan ubah badge:
+Buka [`frontend/src/components/ChatMessage.vue`](../frontend/src/components/ChatMessage.vue#L31-L33) dan ubah badge:
 
 ```html
 <!-- SEBELUM: -->
@@ -199,12 +199,12 @@ Tambahan: Di baris 80–86 `ChatMessage.vue`, ubah label error:
 ## 📌 TUGAS 1.4: Sanitasi Anomali Nilai Tahun (Year 0.0 & 2099.0) pada ETL `fakta_vessel_service`
 
 ### A. Deskripsi Masalah & Dampak
-* **Berkas Terkait:** [`backend/etl/transformers.py:L105-L117`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/etl/transformers.py#L105-L117)
+* **Berkas Terkait:** [`backend/etl/transformers.py:L105-L117`](../backend/etl/transformers.py#L105-L117)
 * **Masalah:** Baris formula kosong pada berkas `VESSEL SERVICE.xlsx` menyebabkan data masuk dengan `year = 0.0` dan `year = 2099.0`.
 * **Akibat Buruk:** Jika user meminta visualisasi tren jangka panjang, chart akan melompat ke tahun 2099 secara janggal.
 
 ### B. Langkah Realisasi Kode
-Buka [`backend/etl/transformers.py`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/etl/transformers.py#L105-L117) dan tambahkan filter rentang tahun yang valid pada fungsi `proses_vessel_service()`:
+Buka [`backend/etl/transformers.py`](../backend/etl/transformers.py#L105-L117) dan tambahkan filter rentang tahun yang valid pada fungsi `proses_vessel_service()`:
 
 ```python
 # ==========================================
@@ -250,12 +250,12 @@ print(conn.execute("SELECT MIN(year), MAX(year), COUNT(*) FROM fakta_vessel_serv
 ## 📌 TUGAS 1.5: Menambahkan Fitur Unduh Excel & CSV pada Modal Tabel Data Mentah
 
 ### A. Deskripsi Masalah & Dampak
-* **Berkas Terkait:** [`frontend/src/components/DataTableModal.vue`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/frontend/src/components/DataTableModal.vue)
+* **Berkas Terkait:** [`frontend/src/components/DataTableModal.vue`](../frontend/src/components/DataTableModal.vue)
 * **Masalah:** Pengguna bisnis komersial di PT TPS tidak bisa mengekspor data hasil query ke Excel atau CSV untuk keperluan laporan harian atau presentasi.
 * **Akibat Buruk:** Nilai guna (*usability*) asisten analitik menjadi terbatas karena data terkurung di dalam browser.
 
 ### B. Langkah Realisasi Kode
-Buka [`frontend/src/components/DataTableModal.vue`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/frontend/src/components/DataTableModal.vue) dan perbarui kodenya agar menyertakan tombol **Download CSV** dan **Copy Table**:
+Buka [`frontend/src/components/DataTableModal.vue`](../frontend/src/components/DataTableModal.vue) dan perbarui kodenya agar menyertakan tombol **Download CSV** dan **Copy Table**:
 
 ```html
 <template>
@@ -353,7 +353,7 @@ const downloadCSV = () => {
 </script>
 ```
 
-*(Catatan: Pastikan ikon `Download` sudah diekspor dari [`frontend/src/components/Icons.js`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/frontend/src/components/Icons.js) menggunakan Lucide icon `Download`).*
+*(Catatan: Pastikan ikon `Download` sudah diekspor dari [`frontend/src/components/Icons.js`](../frontend/src/components/Icons.js) menggunakan Lucide icon `Download`).*
 
 ### C. Cara Pengujian & Verifikasi
 1. Buka browser, kirim pertanyaan data (misal: *"Tampilkan data uncontainerized tahun 2024"*).
@@ -369,7 +369,7 @@ const downloadCSV = () => {
 ## 📌 TUGAS 2.1: Paralelisasi Asinkron / Single-Pass ECharts & Narasi Bisnis
 
 ### A. Deskripsi Masalah & Dampak
-* **Berkas Terkait:** [`backend/agents/viz_gen.py:L101-L115`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/agents/viz_gen.py#L101-L115)
+* **Berkas Terkait:** [`backend/agents/viz_gen.py:L101-L115`](../backend/agents/viz_gen.py#L101-L115)
 * **Masalah:** Saat user meminta chart, sistem memanggil Groq dua kali secara sekuensial (blocking):
   1. `generate_chart_config()` (~2000 ms)
   2. `invoke_chain_with_fallback()` untuk teks narasi (~2500 ms)  
@@ -377,7 +377,7 @@ const downloadCSV = () => {
 * **Solusi Efisien:** Jalankan kedua pemanggilan secara paralel menggunakan `ThreadPoolExecutor` atau `asyncio`, ATAU gunakan Single-Pass Prompt yang langsung menghasilkan teks markdown dan blok json chart sekaligus.
 
 ### B. Langkah Realisasi Kode (Opsi Paralelisasi Cepat dengan ThreadPool)
-Buka [`backend/agents/viz_gen.py`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/agents/viz_gen.py):
+Buka [`backend/agents/viz_gen.py`](../backend/agents/viz_gen.py):
 
 ```python
 from concurrent.futures import ThreadPoolExecutor
@@ -428,12 +428,12 @@ def viz_gen_node(state: AgentState) -> dict:
 ## 📌 TUGAS 2.2: Implementasi Dynamic Few-Shot Prompting pada SQL Generator
 
 ### A. Deskripsi Masalah & Dampak
-* **Berkas Terkait:** [`backend/agents/sql_gen.py:L49-L66`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/agents/sql_gen.py#L49-L66)
+* **Berkas Terkait:** [`backend/agents/sql_gen.py:L49-L66`](../backend/agents/sql_gen.py#L49-L66)
 * **Masalah:** Prompt bersifat murni Zero-Shot. Untuk logika kueri gabungan pendapatan (`COALESCE(total_all_revenue, total_revenue)`), filter kategori `kategori_layanan ILIKE '%international%'`, atau pivot di `fakta_market_share`, model terkadang ragu dan salah merakit klausa WHERE/SELECT.
 * **Solusi Efisien:** Sisipkan contoh nyata pasangan kueri terverifikasi (*Few-Shot Examples*) yang relevan dengan tabel yang terpilih.
 
 ### B. Langkah Realisasi Kode
-Buka [`backend/agents/sql_gen.py`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/agents/sql_gen.py) dan tambahkan kamus Few-Shot dinamis:
+Buka [`backend/agents/sql_gen.py`](../backend/agents/sql_gen.py) dan tambahkan kamus Few-Shot dinamis:
 
 ```python
 FEW_SHOT_EXAMPLES = {
@@ -484,9 +484,9 @@ Sisipkan variabel `{few_shot}` ke dalam `SQL_SYSTEM_PROMPT` dan passing `get_few
 
 ### A. Deskripsi Masalah & Dampak
 * **Berkas Terkait:**  
-  - [`backend/db.py`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/db.py)
-  - [`backend/main.py`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/main.py)
-  - [`frontend/src/components/ChatMessage.vue`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/frontend/src/components/ChatMessage.vue)
+  - [`backend/db.py`](../backend/db.py)
+  - [`backend/main.py`](../backend/main.py)
+  - [`frontend/src/components/ChatMessage.vue`](../frontend/src/components/ChatMessage.vue)
 * **Masalah:** Sistem belum memiliki pencatatan umpan balik pengguna akhir (*User Satisfaction / Feedback Loop*). Anda memerlukan data ini untuk pengujian **User Acceptance Testing (UAT)** di BAB 4 Skripsi.
 
 ### B. Langkah Realisasi Kode
@@ -564,10 +564,10 @@ Di bawah pesan asisten, tambahkan tombol interaktif:
 
 ### A. Deskripsi Masalah & Dampak
 * **Berkas Terkait:**  
-  - [`backend/agents/viz_gen.py`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/agents/viz_gen.py)
-  - [`backend/main.py`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/main.py)
-  - [`frontend/src/components/ChatMessage.vue`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/frontend/src/components/ChatMessage.vue)
-  - [`frontend/src/App.vue`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/frontend/src/App.vue)
+  - [`backend/agents/viz_gen.py`](../backend/agents/viz_gen.py)
+  - [`backend/main.py`](../backend/main.py)
+  - [`frontend/src/components/ChatMessage.vue`](../frontend/src/components/ChatMessage.vue)
+  - [`frontend/src/App.vue`](../frontend/src/App.vue)
 * **Masalah:** Saat kueri menghasilkan data kosong (`DATA_EMPTY`), pengguna disajikan pesan pasif dan sering bingung langkah berikutnya.
 * **Solusi Efisien (0 Token & 0 ms):** Menggunakan fungsi pemetaan domain lokal `get_context_suggestions(user_query, relevant_tables)` yang mendeteksi topik pertanyaan (Throughput, Revenue, Market Share, Vessel) dan menyajikan 3 tombol *chips* pertanyaan teruji (*Golden Queries*) yang 100% valid di database. Pengguna cukup mengklik chip untuk mengeksekusi kueri otomatis tanpa mengetik ulang.
 
@@ -594,7 +594,7 @@ Di bawah pesan asisten, tambahkan tombol interaktif:
 ### A. Konsep Perbaikan
 * **Masalah:** Saat ini cache hanya menggunakan `hashlib.md5(query.lower())`. Variasi kalimat kecil menggagalkan cache.
 * **Solusi Efisien (Tanpa Beban Library Berat):**
-  Buat fungsi **Canonical Key Generator** di [`backend/cache.py`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/cache.py) yang mengekstrak tuple entitas kunci sebelum di-hash:
+  Buat fungsi **Canonical Key Generator** di [`backend/cache.py`](../backend/cache.py) yang mengekstrak tuple entitas kunci sebelum di-hash:
   - Ekstrak angka tahun (misal: `2024`)
   - Ekstrak metrik utama (misal: `throughput`, `revenue`, `market_share`)
   - Ekstrak segmentasi (misal: `international`, `domestic`)
@@ -610,7 +610,7 @@ Di bawah pesan asisten, tambahkan tombol interaktif:
 
 ### A. Konsep Perbaikan
 * **Masalah:** Tabel `fakta_market_share` (54 kolom) dan tabel transhipment memboroskan ratusan token jika seluruh kolom dikirim ke prompt LLM.
-* **Solusi Terpasang di [`backend/agents/sql_gen.py`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/agents/sql_gen.py):**
+* **Solusi Terpasang di [`backend/agents/sql_gen.py`](../backend/agents/sql_gen.py):**
   Fungsi `prune_columns(table_name, columns, user_query)` secara dinamis memangkas kolom tabel $> 20$ kolom:
   - **Dimensi & Metrik Esensial Wajib Ada:** `CORE_DIMENSION_COLS` (`year`, `tahun`, `lop`, `kategori_layanan`, `sumber_sheet`, dsb.) dan `CORE_METRIC_COLS` (`teus`, `total_teus`, `boxes`, `total_revenue`).
   - **Pencocokan Kata Kunci Semantik & Tahun:** Hanya menyertakan kolom yang relevan dengan tahun (cth: `2023_actual`) dan intent pengguna (cth: `persentase`, `share`, `bmph`, `revenue`). Kolom tahun lain (cth: 2022, 2024, 2025, 2026) otomatis dibuang.
@@ -624,7 +624,7 @@ Di bawah pesan asisten, tambahkan tombol interaktif:
 ## 📌 TUGAS 3.3: Kartu Rekomendasi Pertanyaan Multi-Kategori di Beranda
 
 ### A. Konsep Perbaikan
-* **Masalah:** Di [`PromptSuggestions.vue`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/frontend/src/components/PromptSuggestions.vue), sebelumnya hanya ada 3 saran pertanyaan statis tanpa pengelompokan tema bisnis.
+* **Masalah:** Di [`PromptSuggestions.vue`](../frontend/src/components/PromptSuggestions.vue), sebelumnya hanya ada 3 saran pertanyaan statis tanpa pengelompokan tema bisnis.
 * **Solusi Terpasang:**
   Menambahkan navigasi tab multi-kategori dengan 9 kueri terkurasi yang didukung 100% oleh skema DuckDB & Dynamic Few-Shot:
   1. 📊 **Operasional & Throughput**:

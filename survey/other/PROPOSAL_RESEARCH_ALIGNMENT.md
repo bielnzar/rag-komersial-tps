@@ -2,7 +2,7 @@
 ## Konteks Teoretis, Desain Metodologis, & Baseline Penelitian Skripsi
 
 **Dokumen Acuan:** Kerangka Konseptual Usulan Penelitian Tugas Akhir  
-**Peran Dokumen:** Baseline resmi penelitian yang digunakan sebagai acuan komparasi antara rancangan proposal akademis dengan kondisi aktual sistem pada [`TECHNICAL_MASTER_BRIEF.md`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/TECHNICAL_MASTER_BRIEF.md).  
+**Peran Dokumen:** Baseline resmi penelitian yang digunakan sebagai acuan komparasi antara rancangan proposal akademis dengan kondisi aktual sistem pada [`TECHNICAL_MASTER_BRIEF.md`](../TECHNICAL_MASTER_BRIEF.md).  
 **Sifat Dokumen:** Normatif & Konseptual (Bukan laporan audit kode).
 
 ---

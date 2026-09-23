@@ -17,11 +17,11 @@ Mengembangkan asisten analitik data percakapan berbasis Text-to-SQL dan Multi-Ag
 * Sistem berjalan penuh di lingkungan lokal dengan backend FastAPI, database analitik DuckDB, in-memory cache Redis, frontend SPA Vue 3 + Vite, dan orkestrasi LangGraph linier Fail-Fast.
 
 ### C. Entry Point Aplikasi
-1. **Backend Entry Point:** [`backend/main.py`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/main.py)
+1. **Backend Entry Point:** [`backend/main.py`](../backend/main.py)
    - Menginisialisasi instance `app = FastAPI(...)`.
    - Mengompilasi graf LangGraph saat startup: `agent_app = build_graph()`.
    - Endpoint utama: `POST /api/v1/chat` (dilengkapi proteksi JWT Bearer Auth & Pre-Flight Specificity Guard).
-2. **Frontend Entry Point:** [`frontend/index.html`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/frontend/index.html) ➔ [`frontend/src/main.js`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/frontend/src/main.js) ➔ [`frontend/src/App.vue`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/frontend/src/App.vue).
+2. **Frontend Entry Point:** [`frontend/index.html`](../frontend/index.html) ➔ [`frontend/src/main.js`](../frontend/src/main.js) ➔ [`frontend/src/App.vue`](../frontend/src/App.vue).
 
 ### D. Cara Menjalankan Project Secara Lokal
 ```bash
@@ -347,12 +347,12 @@ END
 Berikut adalah daftar ketidaksesuaian (*conflicts*) dan ketidakpastian yang ditemukan saat audit kode:
 
 1. **[CONFLICT 1] Label UI "Self-Healing Active" vs Logika Nyata Fail-Fast:**
-   - *Sumber 1 (Frontend):* [`frontend/src/components/ChatMessage.vue:L31-L33`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/frontend/src/components/ChatMessage.vue#L31-L33) menampilkan badge teks statis: `<span ...>Self-Healing Active</span>`.
-   - *Sumber 2 (Backend):* [`backend/agents/graph.py:L38-L55`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/agents/graph.py#L38-L55) dan [`backend/agents/execute.py`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/agents/execute.py) secara tegas menerapkan alur linier **Fail-Fast Single-Pass (0 Retry)** dan telah menghapus fungsi self-healing loop.
+   - *Sumber 1 (Frontend):* [`frontend/src/components/ChatMessage.vue:L31-L33`](../frontend/src/components/ChatMessage.vue#L31-L33) menampilkan badge teks statis: `<span ...>Self-Healing Active</span>`.
+   - *Sumber 2 (Backend):* [`backend/agents/graph.py:L38-L55`](../backend/agents/graph.py#L38-L55) dan [`backend/agents/execute.py`](../backend/agents/execute.py) secara tegas menerapkan alur linier **Fail-Fast Single-Pass (0 Retry)** dan telah menghapus fungsi self-healing loop.
    - *Verifikasi:* Badge UI tersebut merupakan teks *hardcoded* peninggalan versi lama yang belum diperbarui menjadi "Fail-Fast Active".
 2. **[CONFLICT 2] Berkas CSV di `data/raw/csv/` vs Berkas Excel di `data/raw/*.xlsx`:**
    - *Sumber 1:* Terdapat subfolder `data/raw/csv/` berisi berkas CSV per-sheet.
-   - *Sumber 2:* Script [`backend/etl/main_etl.py:L65-L72`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/etl/main_etl.py#L65-L72) membaca langsung dari berkas Excel `.xlsx` menggunakan `pd.read_excel`.
+   - *Sumber 2:* Script [`backend/etl/main_etl.py:L65-L72`](../backend/etl/main_etl.py#L65-L72) membaca langsung dari berkas Excel `.xlsx` menggunakan `pd.read_excel`.
    - *Verifikasi:* Folder `data/raw/csv/` adalah artefak cadangan lama; pipeline ETL aktif bekerja langsung pada file `.xlsx`.
 3. **[UNCERTAINTY 1] Dukungan Provider Ollama (Local LLM):**
    - *Kondisi:* Terpasang di `requirements.txt:L10` (`langchain-ollama`) dan ada pada dropdown menu Admin, namun dalam berkas `credentials/api_keys.json`, konfigurasi aktif seluruh step hanya menggunakan provider Google Gemini dan Groq Cloud.

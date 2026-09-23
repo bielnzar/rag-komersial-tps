@@ -161,13 +161,17 @@ class SemanticCache:
     - Menyimpan Sesi Percakapan Jangka Panjang per User / Role.
     """
 
+    # Seluruh 10 tabel DuckDB dapat diakses oleh admin maupun user
+    ALL_TABLES = [
+        "fakta_vessel", "fakta_throughput", "fakta_market_share",
+        "fakta_transhipment", "fakta_vessel_service", "fakta_komersial_dashboard",
+        "fakta_realisasi_uc", "fakta_overview_box", "fakta_rest_n_disc",
+        "dim_vessel_operator"
+    ]
+
     DEFAULT_RBAC_RULES = {
-        "admin": ["fakta_vessel", "fakta_throughput", "fakta_market_share", "fakta_transhipment", "fakta_vessel_service", "fakta_komersial_dashboard", "fakta_realisasi_uc", "fakta_overview_box", "fakta_rest_n_disc", "dim_vessel_operator"],
-        "user": ["fakta_vessel", "fakta_throughput", "fakta_market_share", "fakta_transhipment", "fakta_vessel_service", "fakta_komersial_dashboard", "fakta_overview_box", "fakta_rest_n_disc", "dim_vessel_operator"],
-        "executive": ["fakta_vessel", "fakta_throughput", "fakta_market_share", "fakta_transhipment", "fakta_vessel_service", "fakta_komersial_dashboard", "fakta_realisasi_uc", "fakta_overview_box", "fakta_rest_n_disc", "dim_vessel_operator"],
-        "commercial": ["fakta_vessel", "fakta_throughput", "fakta_market_share", "fakta_transhipment", "fakta_vessel_service", "fakta_komersial_dashboard", "fakta_overview_box", "fakta_rest_n_disc", "dim_vessel_operator"],
-        "operation": ["fakta_vessel", "fakta_vessel_service", "fakta_throughput", "fakta_overview_box", "dim_vessel_operator"],
-        "guest": ["fakta_throughput", "fakta_overview_box", "dim_vessel_operator"]
+        "admin": ALL_TABLES,
+        "user": ALL_TABLES
     }
 
     def __init__(self, host: str = "localhost", port: int = 6379, db: int = 0, ttl_seconds: int = 86400):
@@ -512,18 +516,12 @@ class SemanticCache:
     # USER ROLE & RBAC PERMISSIONS CACHE
     # =============================================================
     def get_role_permissions(self, role: str) -> List[str]:
-        role_clean = role.strip().lower() if role else "guest"
-        rbac_key = f"tps_rbac:{role_clean}"
-
-        if self.redis_client:
-            try:
-                data_bytes = self.redis_client.get(rbac_key)
-                if data_bytes:
-                    return json.loads(data_bytes.decode("utf-8"))
-            except Exception:
-                pass
-
-        return self.DEFAULT_RBAC_RULES.get(role_clean, self.DEFAULT_RBAC_RULES["guest"])
+        """
+        Mengambil daftar tabel yang dapat diakses pengguna.
+        Pada sesi pengembangan awal, seluruh tabel terbuka untuk admin maupun user.
+        """
+        role_clean = role.strip().lower() if role else "user"
+        return self.DEFAULT_RBAC_RULES.get(role_clean, self.DEFAULT_RBAC_RULES["user"])
 
     def clear(self):
         """Membersihkan seluruh isi semantic cache (Redis, memory, dan file disk)."""

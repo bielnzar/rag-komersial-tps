@@ -78,7 +78,7 @@ Audit terakhir: **28 Agustus 2026, 08:44 WIB**
 ### ISU #1 — Dokumen `WALKTHROUGH.md` Sudah Kedaluwarsa (STALE DOCUMENTATION)
 
 > [!WARNING]
-> File [WALKTHROUGH.md](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/milestone/WALKTHROUGH.md) memiliki **beberapa informasi yang sudah tidak akurat** setelah perubahan terakhir kita:
+> File [WALKTHROUGH.md](../milestone/WALKTHROUGH.md) memiliki **beberapa informasi yang sudah tidak akurat** setelah perubahan terakhir kita:
 
 | Baris | Isi Lama (Kedaluwarsa) | Fakta Terkini |
 |---|---|---|
@@ -98,7 +98,7 @@ Audit terakhir: **28 Agustus 2026, 08:44 WIB**
 ### ISU #2 — Komentar Fallback di `viz_gen.py` Masih Menyebut "Groq"
 
 > [!NOTE]
-> Di [viz_gen.py](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/agents/viz_gen.py#L79-L80), komentar pada blok `except` masih tertulis:
+> Di [viz_gen.py](../backend/agents/viz_gen.py#L79-L80), komentar pada blok `except` masih tertulis:
 > ```python
 > # Fallback jika Groq gagal parse tool arguments
 > logger_msg = f"⚠️ Groq tool parse error: {e}..."
@@ -110,21 +110,21 @@ Audit terakhir: **28 Agustus 2026, 08:44 WIB**
 ### ISU #3 — `initial_state` di `main.py` Tidak Menyertakan `echarts_config`
 
 > [!NOTE]
-> Di [main.py](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/main.py#L55-L63), `initial_state` tidak menyertakan key `echarts_config`. Meskipun LangGraph TypedDict bersifat toleran, ini bisa menyebabkan peringatan atau perilaku tidak terduga jika state diakses sebelum `viz_gen` mengisinya.
+> Di [main.py](../backend/main.py#L55-L63), `initial_state` tidak menyertakan key `echarts_config`. Meskipun LangGraph TypedDict bersifat toleran, ini bisa menyebabkan peringatan atau perilaku tidak terduga jika state diakses sebelum `viz_gen` mengisinya.
 
 ---
 
 ### ISU #4 — `data/status` Endpoint Masih Di-Mock
 
 > [!NOTE]
-> Endpoint [GET /api/v1/data/status](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/main.py#L80-L90) mengembalikan data statis hardcoded (`last_sync: "2024-10-01"`). Sebaiknya query langsung ke DuckDB untuk menampilkan jumlah tabel & baris aktual.
+> Endpoint [GET /api/v1/data/status](../backend/main.py#L80-L90) mengembalikan data statis hardcoded (`last_sync: "2024-10-01"`). Sebaiknya query langsung ke DuckDB untuk menampilkan jumlah tabel & baris aktual.
 
 ---
 
 ### ISU #5 — Sanitizer `REPLACE` Keyword Bisa False Positive
 
 > [!WARNING]
-> Di [sanitizer.py](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/agents/sanitizer.py#L17), `r'\bREPLACE\b'` ada di `FORBIDDEN_KEYWORDS`. Namun DuckDB menggunakan fungsi `REPLACE()` yang sah (string manipulation). Jika LLM merakit query seperti `SELECT REPLACE(lop, 'x', 'y')`, Sanitizer akan mem-blokir secara keliru.
+> Di [sanitizer.py](../backend/agents/sanitizer.py#L17), `r'\bREPLACE\b'` ada di `FORBIDDEN_KEYWORDS`. Namun DuckDB menggunakan fungsi `REPLACE()` yang sah (string manipulation). Jika LLM merakit query seperti `SELECT REPLACE(lop, 'x', 'y')`, Sanitizer akan mem-blokir secara keliru.
 >
 > **Saran:** Hapus `REPLACE` dari forbidden list, atau ubah aturan agar hanya blokir `CREATE OR REPLACE` (bukan fungsi `REPLACE()` biasa).
 

@@ -16,7 +16,7 @@
   2. `output_tokens` (Completion Tokens) ➔ Nilai aktual dari server provider.
   3. `total_tokens` ➔ Penjumlahan aktual `input_tokens + output_tokens`.
 * **File & Fungsi yang Menghasilkan:**
-  - **File:** [`backend/agents/llm_helper.py`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/agents/llm_helper.py#L106-L115)
+  - **File:** [`backend/agents/llm_helper.py`](../backend/agents/llm_helper.py#L106-L115)
   - **Fungsi:** `invoke_chain_with_fallback()`
 * **Bukti Potongan Kode Nyata (`llm_helper.py:L106-L115`):**
   ```python
@@ -103,7 +103,7 @@
 
 ### 5. Struktur Aktual Prompt SQL Generator & Komponen Pruning
 
-Prompt SQL Generator disusun pada [`backend/agents/sql_gen.py:L49-L100`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/agents/sql_gen.py#L49-L100) menggunakan format template LangChain:
+Prompt SQL Generator disusun pada [`backend/agents/sql_gen.py:L49-L100`](../backend/agents/sql_gen.py#L49-L100) menggunakan format template LangChain:
 
 ```python
 SQL_SYSTEM_PROMPT = """Rakit query DuckDB SQL murni berdasarkan pertanyaan pengguna dan riwayat percakapan terdekat.
@@ -143,7 +143,7 @@ Aturan:
 
 * **Jawaban Tegas:** **SANGAT MEMUNGKINKAN DAN SANGAT MUDAH DILAKUKAN.**
 * **Alasan Teknis:**  
-  Fungsi ekstraksi skema pada [`backend/agents/sql_gen.py:L18`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/backend/agents/sql_gen.py#L18) sudah dirancang secara modular dengan parameter opsional:
+  Fungsi ekstraksi skema pada [`backend/agents/sql_gen.py:L18`](../backend/agents/sql_gen.py#L18) sudah dirancang secara modular dengan parameter opsional:
   ```python
   def get_duckdb_schema(relevant_tables: list[str] | None = None) -> str:
   ```

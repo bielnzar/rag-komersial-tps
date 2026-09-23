@@ -1,36 +1,32 @@
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
-    <div class="card-executive max-w-md w-full p-6 sm:p-8 rounded-3xl border border-slate-700/60 shadow-2xl bg-slate-900/95 relative overflow-hidden">
-      <!-- Decorative Accent Blur -->
-      <div class="absolute -top-12 -right-12 w-36 h-36 bg-teal-500/15 rounded-full blur-2xl pointer-events-none"></div>
-      <div class="absolute -bottom-12 -left-12 w-36 h-36 bg-blue-500/15 rounded-full blur-2xl pointer-events-none"></div>
-
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#060a14]/90 backdrop-blur-sm animate-fade-in">
+    <div class="max-w-md w-full p-6 sm:p-8 rounded-2xl border border-slate-700/70 shadow-modal bg-[#0e172a] relative overflow-hidden">
       <!-- Header Section dengan Logo TPS Asli -->
       <div class="text-center mb-6">
-        <div class="inline-flex items-center justify-center p-3 sm:p-4 rounded-3xl bg-slate-950/90 border border-slate-700/60 mb-3 shadow-xl">
+        <div class="inline-flex items-center justify-center p-3 sm:p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 mb-3.5 shadow-card">
           <img 
             :src="logoUrl" 
             alt="Logo PT TPS" 
-            class="h-12 sm:h-14 w-auto object-contain"
+            class="h-11 sm:h-12 w-auto object-contain"
             @error="hasLogoError = true"
             v-if="!hasLogoError"
           />
           <div v-else class="flex items-center gap-2 px-2 py-1">
-            <Ship class="w-8 h-8 text-teal-400" />
-            <span class="font-extrabold text-lg text-slate-100 tracking-wider">PT TPS</span>
+            <Ship class="w-7 h-7 text-sky-400" />
+            <span class="font-bold text-base text-slate-100 tracking-wider">PT TPS</span>
           </div>
         </div>
 
-        <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-100">
-          Portal Masuk Sistem AI
+        <h2 class="text-lg sm:text-xl font-semibold tracking-tight text-white">
+          Sistem Analitik Komersial & Operasional
         </h2>
-        <p class="text-xs text-slate-400 font-medium mt-1">
+        <p class="text-xs text-slate-400 font-normal mt-1">
           PT Terminal Petikemas Surabaya — Single Unified Access
         </p>
       </div>
 
       <!-- Error Alert Message -->
-      <div v-if="errorMessage" class="mb-5 p-3.5 rounded-xl bg-red-950/60 border border-red-800/60 text-red-200 text-xs flex items-start gap-2.5 animate-shake">
+      <div v-if="errorMessage" class="mb-5 p-3 rounded-xl bg-red-950/60 border border-red-800/60 text-red-200 text-xs flex items-start gap-2.5 animate-shake">
         <AlertCircle class="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
         <div class="font-medium">{{ errorMessage }}</div>
       </div>
@@ -38,9 +34,9 @@
       <!-- Unified Login Form -->
       <form @submit.prevent="handleLogin" class="space-y-4">
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Username Pengguna</label>
+          <label class="block text-xs font-medium text-slate-300 mb-1.5">Username Pengguna</label>
           <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
               <User class="w-4 h-4" />
             </div>
             <input
@@ -49,15 +45,15 @@
               required
               autocomplete="username"
               placeholder="Masukkan username Anda"
-              class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs font-medium focus:outline-none focus:border-teal-500 transition-colors"
+              class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#080d1a] border border-slate-700/80 text-slate-100 text-xs font-normal focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-colors"
             />
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Kata Sandi (Password)</label>
+          <label class="block text-xs font-medium text-slate-300 mb-1.5">Kata Sandi (Password)</label>
           <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
               <Lock class="w-4 h-4" />
             </div>
             <input
@@ -66,12 +62,12 @@
               required
               autocomplete="current-password"
               placeholder="Masukkan kata sandi"
-              class="w-full pl-9 pr-10 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs font-medium focus:outline-none focus:border-teal-500 transition-colors"
+              class="w-full pl-9 pr-10 py-2.5 rounded-xl bg-[#080d1a] border border-slate-700/80 text-slate-100 text-xs font-normal focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-colors"
             />
             <button 
               type="button" 
               @click="showPassword = !showPassword"
-              class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 transition-colors text-xs"
+              class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200 transition-colors text-xs"
             >
               {{ showPassword ? 'Sembunyikan' : 'Lihat' }}
             </button>
@@ -82,7 +78,7 @@
         <button
           type="submit"
           :disabled="isLoading"
-          class="w-full py-3 rounded-xl font-bold text-xs shadow-lg transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-400 hover:to-cyan-500 text-slate-950 shadow-teal-500/20 disabled:opacity-60"
+          class="w-full py-2.5 rounded-xl font-medium text-xs shadow-sm transition-colors flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-60 cursor-pointer"
         >
           <Loader2 v-if="isLoading" class="w-4 h-4 animate-spin" />
           <ShieldCheck v-else class="w-4 h-4" />
@@ -92,12 +88,12 @@
 
       <!-- Session Info Banner -->
       <div class="mt-6 pt-4 border-t border-slate-800/80 text-center">
-        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400">
-          <span class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
-          <span>Sesi aktif aman harian (maksimal 8 jam)</span>
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#080d1a] border border-slate-800 text-[11px] text-slate-400">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>Sesi aktif terproteksi (maksimal 8 jam)</span>
         </div>
         <p class="text-[10px] text-slate-500 mt-2">
-          Admin diarahkan ke Dashboard Manajemen, User diarahkan ke Chat AI.
+          Admin diarahkan ke Dashboard Manajemen, User diarahkan ke Chat Analitik.
         </p>
       </div>
 

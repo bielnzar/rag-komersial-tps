@@ -91,9 +91,9 @@ Katalog Tabel Tersedia:
 def router_node(state: AgentState) -> dict:
     user_query = state.get("user_query", "")
     chat_history = state.get("chat_history", [])
-    user_role = state.get("role", "guest")
+    user_role = state.get("role", "user")
     
-    log_step("STEP 1: ROUTER", f"Evaluasi konteks & hak akses tabel RBAC untuk Role: '{user_role}'", f"Query: '{user_query}'")
+    log_step("STEP 1: ROUTER", f"Evaluasi konteks & routing tabel (Role: '{user_role}')", f"Query: '{user_query}'")
 
     history_context = ""
     if chat_history:

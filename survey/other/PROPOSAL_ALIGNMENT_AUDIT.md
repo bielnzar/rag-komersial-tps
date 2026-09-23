@@ -2,8 +2,8 @@
 ## Evaluasi Komparatif Rancangan Akademis (BAB 3) terhadap Implementasi Nyata Sistem
 
 **Dasar Dokumen Komparasi:**
-1. **Rancangan Teoretis / Proposal:** [`PROPOSAL_RESEARCH_ALIGNMENT.md`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/PROPOSAL_RESEARCH_ALIGNMENT.md)
-2. **Kondisi Faktual Sistem / Audit Nyata:** [`TECHNICAL_MASTER_BRIEF.md`](file:///home/bosmuda/Intern/TPS/rag-komersial-tps/TECHNICAL_MASTER_BRIEF.md)
+1. **Rancangan Teoretis / Proposal:** [`PROPOSAL_RESEARCH_ALIGNMENT.md`](../PROPOSAL_RESEARCH_ALIGNMENT.md)
+2. **Kondisi Faktual Sistem / Audit Nyata:** [`TECHNICAL_MASTER_BRIEF.md`](../TECHNICAL_MASTER_BRIEF.md)
 
 **Prinsip Penilaian:**  
 Objektif, berbasis bukti kode (*Evidence-Based*), tanpa pemaksaan teori ke kode atau sebaliknya, dan membedakan secara tegas antara sistem yang sudah terpasang (*Implemented*) dengan rencana masa depan (*Future Work*).

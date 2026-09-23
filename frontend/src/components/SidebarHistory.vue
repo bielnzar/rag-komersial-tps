@@ -1,7 +1,7 @@
 <template>
   <aside 
     :class="[
-      'fixed top-0 left-0 bottom-0 z-40 bg-slate-950/95 border-r border-slate-800/80 backdrop-blur-xl transition-all duration-300 flex flex-col justify-between shadow-2xl',
+      'fixed top-0 left-0 bottom-0 z-40 bg-[#0a1020] border-r border-slate-800/80 transition-all duration-300 flex flex-col justify-between shadow-2xl',
       isOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full md:w-14 md:translate-x-0'
     ]"
   >
@@ -17,8 +17,8 @@
             @error="hasSmallLogoError = true"
             v-if="!hasSmallLogoError"
           />
-          <Ship v-else class="w-4 h-4 text-teal-400 shrink-0" />
-          <span class="font-bold text-xs text-slate-200 tracking-tight">Riwayat Sesi</span>
+          <Ship v-else class="w-4 h-4 text-sky-400 shrink-0" />
+          <span class="font-semibold text-xs text-slate-200 tracking-tight">Riwayat Sesi</span>
         </div>
 
         <!-- Single Toggle Button -->
@@ -36,13 +36,13 @@
       <button
         @click="$emit('new-session')"
         :class="[
-          'w-full py-2 px-3 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-sm',
+          'w-full py-2 px-3 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 font-medium text-xs transition-all flex items-center justify-center gap-2 shadow-sm',
           !isOpen && 'hidden md:flex md:p-2'
         ]"
         title="Buat Sesi Obrolan Baru"
       >
-        <Plus class="w-3.5 h-3.5 text-teal-400 shrink-0" />
-        <span v-if="isOpen">Chat Baru</span>
+        <Plus class="w-3.5 h-3.5 text-sky-400 shrink-0" />
+        <span v-if="isOpen">Analisis Baru</span>
       </button>
     </div>
 
@@ -62,14 +62,14 @@
         :key="item.session_id"
         @click="$emit('select-session', item.session_id)"
         :class="[
-          'group relative p-2 rounded-xl border text-left cursor-pointer transition-all flex items-center justify-between gap-2',
+          'group relative p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-center justify-between gap-2',
           activeSessionId === item.session_id
-            ? 'bg-slate-900 border-teal-500/50 text-slate-100 shadow-md'
-            : 'bg-slate-950/40 hover:bg-slate-900/70 border-slate-900 text-slate-400 hover:text-slate-200'
+            ? 'bg-[#131f38] border-sky-500/40 text-slate-100 shadow-sm'
+            : 'bg-[#080d1a]/50 hover:bg-[#10192e] border-slate-800/60 text-slate-400 hover:text-slate-200'
         ]"
       >
-        <div class="flex items-center gap-2 min-w-0 flex-1">
-          <MessageSquare class="w-3.5 h-3.5 text-teal-400 shrink-0" />
+        <div class="flex items-center gap-2.5 min-w-0 flex-1">
+          <MessageSquare class="w-3.5 h-3.5 text-sky-400 shrink-0" />
           <div class="min-w-0 flex-1">
             <p class="text-[11px] font-medium truncate leading-tight">{{ item.title }}</p>
             <p class="text-[9px] text-slate-500 mt-0.5">{{ item.created_at }}</p>
@@ -88,11 +88,11 @@
     </div>
 
     <!-- Bottom Section: Active User Profile Card -->
-    <div v-if="isOpen && currentUser" class="p-2.5 border-t border-slate-900 bg-slate-950/90 flex items-center justify-between">
+    <div v-if="isOpen && currentUser" class="p-2.5 border-t border-slate-800/80 bg-[#080d1a]/90 flex items-center justify-between">
       <div class="min-w-0 flex-1 pr-2">
-        <p class="text-[11px] font-semibold text-slate-200 truncate">{{ currentUser.name }}</p>
+        <p class="text-[11px] font-medium text-slate-200 truncate">{{ currentUser.name }}</p>
         <div class="flex items-center gap-1.5 mt-0.5">
-          <span class="inline-block px-1.5 py-0.2 text-[8px] font-bold uppercase tracking-wider rounded bg-slate-900 text-teal-300 border border-slate-800">
+          <span class="inline-block px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider rounded bg-slate-900 text-slate-300 border border-slate-800 font-mono">
             {{ currentUser.role }}
           </span>
           <span class="text-[9px] text-slate-500 truncate">@{{ currentUser.username }}</span>

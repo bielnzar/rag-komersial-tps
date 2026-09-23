@@ -30,7 +30,7 @@ Berikut adalah struktur folder di dalam direktori `backend/` yang wajib dipahami
 - **`etl/`**: Pipeline Data Engineering (konsep *Medallion Architecture*).
   - `main_etl.py`: *Script* utama untuk mengekstrak data dari Excel mentah dan menyuntikkannya ke DuckDB.
   - `transformers.py`: Berisi fungsi-fungsi spesifik untuk membersihkan tiap bentuk *sheet* Excel (contoh: *unpivot*, penyeragaman nama kolom).
-  - `utils.py`: Berisi *helper* modular (hapus kolom hantu, pemaksaan tipe data, sistem *logging* otomatis).
+  - `utils.py`: Berisi *helper* modular (sanitasi skema awal, pemaksaan tipe data, sistem *logging* otomatis).
 
 - **`main.py`**: *Entry point* FastAPI. Semua rute API (termasuk `/api/v1/chat`) hidup di sini.
 

@@ -1,50 +1,46 @@
 <template>
   <div class="my-6">
-    <!-- Header Rekomendasi Pertanyaan Multi-Kategori -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3.5 px-1">
-      <div class="flex items-center gap-2">
-        <div class="w-7 h-7 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
+    <!-- Header Rekomendasi Analisis -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
           <Sparkles class="w-4 h-4" />
         </div>
         <div>
-          <h3 class="text-xs sm:text-sm font-bold text-slate-200 tracking-wide flex items-center gap-2">
+          <h3 class="text-xs sm:text-sm font-semibold text-slate-100 tracking-wide flex items-center gap-2">
             Rekomendasi Analisis Komersial
-            <span class="text-[10px] font-semibold text-teal-400 bg-teal-950/80 px-2 py-0.5 rounded-full border border-teal-800/50">
-              9 Domain Siap Pakai
+            <span class="text-[10px] font-medium text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700/60 font-mono">
+              9 Kueri Terverifikasi
             </span>
           </h3>
         </div>
       </div>
-      <span class="text-[11px] text-slate-400 font-medium hidden sm:inline">
-        Pilih kategori domain untuk menjelajahi kueri analitik
+      <span class="text-[11px] text-slate-400 font-normal hidden sm:inline">
+        Pilih skenario domain untuk memuat kueri data operasional
       </span>
     </div>
 
-    <!-- Category Tabs Navigation -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+    <!-- Category Segmented Control Navigation -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
       <button
         v-for="cat in categories"
         :key="cat.id"
         type="button"
         @click="activeCategory = cat.id"
         :class="[
-          'flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-left transition-all duration-200',
+          'flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-left transition-all duration-150',
           activeCategory === cat.id
-            ? 'bg-slate-800/90 border-teal-500/60 shadow-md shadow-teal-950/30 text-teal-300 ring-1 ring-teal-500/30'
-            : 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-900/90 hover:border-slate-700'
+            ? 'bg-[#142038] border-sky-500/40 text-sky-200 shadow-sm'
+            : 'bg-[#0b1324] border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-[#0f1a30] hover:border-slate-700/80'
         ]"
       >
         <div class="flex items-center gap-2.5 min-w-0">
-          <component :is="cat.icon" class="w-4 h-4 shrink-0" :class="activeCategory === cat.id ? 'text-teal-400' : 'text-slate-500'" />
+          <component :is="cat.icon" class="w-4 h-4 shrink-0" :class="activeCategory === cat.id ? 'text-sky-400' : 'text-slate-400'" />
           <span class="text-xs font-semibold truncate">{{ cat.name }}</span>
         </div>
         <div class="flex items-center gap-1.5 shrink-0 ml-2">
-          <span
-            v-if="activeCategory === cat.id"
-            class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"
-          ></span>
           <span class="text-[10px] px-1.5 py-0.5 rounded font-mono font-medium"
-            :class="activeCategory === cat.id ? 'bg-teal-950/90 text-teal-300 border border-teal-800/50' : 'bg-slate-800/80 text-slate-500'"
+            :class="activeCategory === cat.id ? 'bg-sky-950/80 text-sky-300 border border-sky-800/40' : 'bg-slate-800/60 text-slate-400'"
           >
             {{ cat.items.length }}
           </span>
@@ -53,49 +49,49 @@
     </div>
 
     <!-- Current Category Context Banner -->
-    <div class="mb-3 px-3 py-1.5 rounded-lg bg-slate-900/40 border border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
+    <div class="mb-3.5 px-3 py-2 rounded-lg bg-[#0b1324]/80 border border-slate-800/70 flex items-center justify-between text-[11px] text-slate-400">
       <div class="flex items-center gap-2 truncate">
-        <span class="font-semibold text-slate-300">Cakupan Domain:</span>
+        <span class="font-medium text-slate-300">Cakupan Domain:</span>
         <span class="truncate text-slate-400">{{ currentCategory.description }}</span>
       </div>
-      <span class="text-[10px] text-slate-500 font-mono shrink-0 ml-2">DuckDB Verified</span>
+      <span class="text-[10px] text-slate-400 font-mono shrink-0 ml-2">DuckDB Verified</span>
     </div>
 
-    <!-- Interactive Query Cards Grid -->
+    <!-- Interactive Query Cards Grid (Solid Industrial Cards) -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
       <button
         v-for="(item, idx) in currentCategory.items"
         :key="idx"
         type="button"
         @click="triggerPrompt(item.query)"
-        class="card-interactive text-left p-4 rounded-2xl group flex flex-col justify-between min-h-[155px] border border-slate-800/80 hover:border-teal-500/50 bg-slate-900/60 hover:bg-slate-900/95 transition-all duration-200 shadow-md hover:shadow-teal-950/20"
+        class="card-interactive text-left p-4 rounded-xl group flex flex-col justify-between min-h-[155px]"
       >
         <div>
           <!-- Tag & Table Badges -->
           <div class="flex items-center justify-between gap-1 mb-2.5">
-            <span class="text-[10px] font-bold text-teal-300 bg-teal-950/80 px-2 py-0.5 rounded-md border border-teal-800/50 uppercase tracking-wider truncate">
+            <span class="text-[10px] font-semibold text-sky-300 bg-sky-950/70 px-2 py-0.5 rounded border border-sky-800/50 uppercase tracking-wide truncate">
               {{ item.tag }}
             </span>
-            <span class="text-[10px] text-slate-500 font-mono shrink-0">{{ item.tables }}</span>
+            <span class="text-[10px] text-slate-400 font-mono shrink-0">{{ item.tables }}</span>
           </div>
 
           <!-- Query Prompt -->
-          <p class="text-xs text-slate-200 group-hover:text-white font-medium leading-relaxed mb-2">
+          <p class="text-xs text-slate-200 group-hover:text-white font-medium leading-relaxed mb-2.5">
             "{{ item.query }}"
           </p>
 
           <!-- Metric Focus Pill -->
-          <div class="text-[10px] text-slate-400 font-medium flex items-center gap-1">
-            <span class="text-teal-400">⚡</span>
+          <div class="text-[11px] text-slate-400 font-normal flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
             <span>{{ item.metric }}</span>
           </div>
         </div>
         
         <!-- Action Footer -->
-        <div class="flex items-center justify-between text-[11px] text-slate-400 mt-3.5 pt-2.5 border-t border-slate-800/60 group-hover:border-slate-800 transition-colors">
-          <span class="font-semibold text-slate-400 group-hover:text-teal-300 transition-colors">Jalankan Analisis</span>
-          <div class="w-5 h-5 rounded-full bg-slate-800/80 group-hover:bg-teal-500/20 flex items-center justify-center transition-colors">
-            <ArrowRight class="w-3 h-3 transition-transform group-hover:translate-x-0.5 text-slate-400 group-hover:text-teal-300" />
+        <div class="flex items-center justify-between text-[11px] text-slate-400 mt-3 pt-2.5 border-t border-slate-800/60 group-hover:border-slate-700/60 transition-colors">
+          <span class="font-medium text-slate-400 group-hover:text-sky-300 transition-colors">Jalankan Analisis</span>
+          <div class="w-5 h-5 rounded bg-slate-800/80 group-hover:bg-sky-500/20 flex items-center justify-center transition-colors">
+            <ArrowRight class="w-3 h-3 transition-transform group-hover:translate-x-0.5 text-slate-400 group-hover:text-sky-300" />
           </div>
         </div>
       </button>
